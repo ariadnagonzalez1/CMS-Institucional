@@ -12,6 +12,15 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader
 
+# 🔥 LIMPIAR CACHE (CLAVE)
+RUN php artisan config:clear
+RUN php artisan cache:clear
+RUN php artisan view:clear
+
+# 🔥 CREAR SQLITE
+RUN touch database/database.sqlite
+
+# 🔥 PERMISOS
 RUN chmod -R 777 storage bootstrap/cache
 
 EXPOSE 10000
