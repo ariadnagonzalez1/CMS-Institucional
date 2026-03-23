@@ -21,13 +21,15 @@
     <!-- Logo y título -->
     <div class="p-5 border-b" style="border-color: #2a6b4a;">
         <div class="flex items-center space-x-3">
-            <div class="h-10 w-10 rounded-xl overflow-hidden flex-shrink-0">
-    <img src="{{ asset('images/colegios.jpg') }}" alt="Logo" class="h-full w-full object-contain">
-</div>
-            <div>
-                <h2 class="text-sm font-bold text-white leading-tight">Ingenieros de Formosa</h2>
-                <p class="text-xs mt-0.5" style="color: rgba(255,255,255,0.5);">Panel de Administración</p>
-            </div>
+            <a href="{{ route('admin.dashboard') }}" class="flex items-center space-x-3 hover:opacity-90 transition-opacity">
+    <div class="h-10 w-10 rounded-xl overflow-hidden flex-shrink-0">
+        <img src="{{ asset('images/colegios.jpg') }}" alt="Logo" class="h-full w-full object-contain">
+    </div>
+    <div>
+        <h2 class="text-sm font-bold text-white leading-tight">Ingenieros de Formosa</h2>
+        <p class="text-xs mt-0.5" style="color: rgba(255,255,255,0.5);">Panel de Administración</p>
+    </div>
+</a>
         </div>
     </div>
 

@@ -71,7 +71,7 @@ class DashboardController extends Controller
             (object)[
                 'nombre' => 'Mi Perfil',
                 'icono' => 'fas fa-user-circle',
-                'path_home' => '/admin/perfil',
+                'path_home' => '/profile',
                 'descripcion' => 'Datos personales y cuenta'
             ],
             (object)[
@@ -89,7 +89,7 @@ class DashboardController extends Controller
         ]);
 
         return view('admin.dashboard', compact(
-            'modulosPrincipales', 
+            'modulosPrincipales',
             'modulosSecundarios',
             'nombreUsuario'
         ));

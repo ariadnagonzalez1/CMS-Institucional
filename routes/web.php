@@ -11,21 +11,25 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::get ('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('login', [LoginController::class, 'login']);
 Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // ── Perfil ───────────────────────────────────────────────────────────────
+    Route::get   ('/profile',          [ProfileController::class, 'edit'])          ->name('profile.edit');
+    Route::patch ('/profile',          [ProfileController::class, 'update'])        ->name('profile.update');
+    Route::patch ('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::patch ('/profile/avatar',   [ProfileController::class, 'updateAvatar'])  ->name('profile.avatar');
+    Route::delete('/profile',          [ProfileController::class, 'destroy'])       ->name('profile.destroy');
 
+    // ── Admin ────────────────────────────────────────────────────────────────
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/', fn() => redirect()->route('admin.dashboard'));
 
-        // ── Módulo Root ──────────────────────────────────────────────────
+        // Módulo Root
         Route::prefix('root')->name('root.')->group(function () {
 
             Route::get('/', [RootController::class, 'index'])->name('index');
@@ -36,9 +40,9 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/modulos/{modulo}',  [RootController::class, 'moduloDestroy'])->name('modulos.destroy');
 
             // Secciones de Banners
-            Route::post  ('/secciones-banners',                   [RootController::class, 'seccionBannerStore'])  ->name('secciones-banners.store');
-            Route::post  ('/secciones-banners/{seccionBanner}',   [RootController::class, 'seccionBannerUpdate']) ->name('secciones-banners.update');
-            Route::delete('/secciones-banners/{seccionBanner}',   [RootController::class, 'seccionBannerDestroy'])->name('secciones-banners.destroy');
+            Route::post  ('/secciones-banners',                 [RootController::class, 'seccionBannerStore'])  ->name('secciones-banners.store');
+            Route::post  ('/secciones-banners/{seccionBanner}', [RootController::class, 'seccionBannerUpdate']) ->name('secciones-banners.update');
+            Route::delete('/secciones-banners/{seccionBanner}', [RootController::class, 'seccionBannerDestroy'])->name('secciones-banners.destroy');
 
             // Modos de Texto
             Route::post  ('/modos-texto',             [RootController::class, 'modoTextoStore'])  ->name('modos-texto.store');
@@ -50,6 +54,5 @@ Route::middleware(['auth'])->group(function () {
             Route::put   ('/secciones/{seccionTexto}', [RootController::class, 'seccionUpdate']) ->name('secciones.update');
             Route::delete('/secciones/{seccionTexto}', [RootController::class, 'seccionDestroy'])->name('secciones.destroy');
         });
-        // ────────────────────────────────────────────────────────────────
     });
 });
