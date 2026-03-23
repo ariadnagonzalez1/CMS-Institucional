@@ -1,4 +1,5 @@
 import './bootstrap';
+import './admin/modal-crud.js'
 
 import Alpine from 'alpinejs';
 

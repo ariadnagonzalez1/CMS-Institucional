@@ -2,16 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Root\StoreModuloRequest;
+use App\Http\Requests\Root\UpdateModuloRequest;
+use App\Http\Requests\Root\StoreModoTextoRequest;
+use App\Http\Requests\Root\UpdateModoTextoRequest;
+use App\Http\Requests\Root\StoreSeccionTextoRequest;
+use App\Http\Requests\Root\UpdateSeccionTextoRequest;
+use App\Http\Requests\Root\StoreSeccionBannerRequest;
+use App\Http\Requests\Root\UpdateSeccionBannerRequest;
 use App\Models\Modulo;
 use App\Models\ModoTexto;
-use App\Models\SeccionNoticia;
-use Illuminate\Http\Request;
+use App\Models\SeccionTexto;
+use App\Models\SeccionBanner;
+use App\Services\CrudService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class RootController extends Controller
 {
+    public function __construct(private readonly CrudService $crud) {}
+
     // ─────────────────────────────────────────
     //  Variables compartidas del layout
     // ─────────────────────────────────────────
@@ -21,183 +33,186 @@ class RootController extends Controller
         $nombreUsuario = $user ? $user->name : 'Usuario';
 
         $modulosPrincipales = collect([
-            (object)['nombre' => 'Root',               'path_home' => '/admin/root',       'descripcion' => 'Configuración general del sistema'],
-            (object)['nombre' => 'Admin y Usuarios',   'path_home' => '/admin/usuarios',   'descripcion' => 'Gestión de usuarios y permisos'],
-            (object)['nombre' => 'Novedades y Noticias','path_home' => '/admin/noticias',  'descripcion' => 'Publicar y administrar noticias'],
-            (object)['nombre' => 'Publicidad y Banners','path_home' => '/admin/banners',   'descripcion' => 'Gestionar banners publicitarios'],
-            (object)['nombre' => 'Audio/Video',         'path_home' => '/admin/multimedia','descripcion' => 'Contenido multimedia'],
+            (object)['nombre' => 'Root',                'path_home' => '/admin/root',        'descripcion' => 'Configuración general del sistema'],
+            (object)['nombre' => 'Admin y Usuarios',    'path_home' => '/admin/usuarios',    'descripcion' => 'Gestión de usuarios y permisos'],
+            (object)['nombre' => 'Novedades y Noticias','path_home' => '/admin/noticias',    'descripcion' => 'Publicar y administrar noticias'],
+            (object)['nombre' => 'Publicidad y Banners','path_home' => '/admin/banners',     'descripcion' => 'Gestionar banners publicitarios'],
+            (object)['nombre' => 'Audio/Video',          'path_home' => '/admin/multimedia',  'descripcion' => 'Contenido multimedia'],
         ]);
 
         $modulosSecundarios = collect([
-            (object)['nombre' => 'Álbum de Fotos',       'path_home' => '/admin/albumes',   'descripcion' => 'Crear y gestionar álbumes'],
-            (object)['nombre' => 'Calendario Agenda',    'path_home' => '/admin/agenda',    'descripcion' => 'Eventos y programación'],
-            (object)['nombre' => 'Mi Perfil',            'path_home' => '/admin/perfil',    'descripcion' => 'Datos personales y cuenta'],
-            (object)['nombre' => 'Contadores Web',       'path_home' => '/admin/contadores','descripcion' => 'Estadísticas y métricas'],
-            (object)['nombre' => 'Trámites y Formularios','path_home' => '/admin/tramites', 'descripcion' => 'Documentos descargables'],
+            (object)['nombre' => 'Álbum de Fotos',        'path_home' => '/admin/albumes',    'descripcion' => 'Crear y gestionar álbumes'],
+            (object)['nombre' => 'Calendario Agenda',     'path_home' => '/admin/agenda',     'descripcion' => 'Eventos y programación'],
+            (object)['nombre' => 'Mi Perfil',             'path_home' => '/admin/perfil',     'descripcion' => 'Datos personales y cuenta'],
+            (object)['nombre' => 'Contadores Web',        'path_home' => '/admin/contadores', 'descripcion' => 'Estadísticas y métricas'],
+            (object)['nombre' => 'Trámites y Formularios','path_home' => '/admin/tramites',   'descripcion' => 'Documentos descargables'],
         ]);
 
         return compact('nombreUsuario', 'modulosPrincipales', 'modulosSecundarios');
     }
 
     // ─────────────────────────────────────────
-    //  INDEX — vista principal con las 3 tabs
+    //  INDEX
     // ─────────────────────────────────────────
     public function index(): View
     {
-        $modulos    = Modulo::orderBy('orden')->get();
-        $modosTexto = ModoTexto::orderBy('id')->get();
-        $secciones  = SeccionNoticia::with('modoTexto')->orderBy('orden')->get();
+        $modulos         = Modulo::orderBy('orden')->get();
+        $modosTexto      = ModoTexto::orderBy('id')->get();
+        $secciones       = SeccionTexto::with('modoTexto')->orderBy('orden')->get();
+        $seccionesBanners = SeccionBanner::orderBy('nombre')->get();
 
         return view('modulos.root.index', array_merge(
             $this->layoutData(),
-            compact('modulos', 'modosTexto', 'secciones')
+            compact('modulos', 'modosTexto', 'secciones', 'seccionesBanners')
         ));
     }
 
     // ─────────────────────────────────────────
     //  MÓDULOS
     // ─────────────────────────────────────────
-    public function moduloStore(Request $request): RedirectResponse
+    public function moduloStore(StoreModuloRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'nombre'    => 'required|string|max:120',
-            'tipo'      => 'nullable|string|max:50',
-            'path_home' => 'nullable|string|max:255',
-            'icono'     => 'nullable|string|max:100',
-            'orden'     => 'nullable|integer|min:0',
-            'estado'    => 'boolean',
-        ]);
-
-        $data['estado'] = $request->boolean('estado', true);
-        $data['orden']  = $data['orden'] ?? 0;
-
-        Modulo::create($data);
-
-        return redirect()->route('admin.root.index', ['tab' => 'modulos'])
-            ->with('success', 'Módulo creado correctamente.');
+        return $this->crud->store(
+            model      : new Modulo,
+            data       : $request->validated(),
+            redirectTo : route('admin.root.index', ['tab' => 'modulos']),
+            label      : 'módulo',
+        );
     }
 
-    public function moduloUpdate(Request $request, Modulo $modulo): RedirectResponse
+    public function moduloUpdate(UpdateModuloRequest $request, Modulo $modulo): RedirectResponse
     {
-        $data = $request->validate([
-            'nombre'    => 'required|string|max:120',
-            'tipo'      => 'nullable|string|max:50',
-            'path_home' => 'nullable|string|max:255',
-            'icono'     => 'nullable|string|max:100',
-            'orden'     => 'nullable|integer|min:0',
-            'estado'    => 'boolean',
-        ]);
-
-        $data['estado'] = $request->boolean('estado');
-
-        $modulo->update($data);
-
-        return redirect()->route('admin.root.index', ['tab' => 'modulos'])
-            ->with('success', 'Módulo actualizado correctamente.');
+        return $this->crud->update(
+            model      : $modulo,
+            data       : $request->validated(),
+            redirectTo : route('admin.root.index', ['tab' => 'modulos']),
+            label      : 'módulo',
+        );
     }
 
     public function moduloDestroy(Modulo $modulo): RedirectResponse
     {
-        $modulo->delete();
+        return $this->crud->destroy(
+            model      : $modulo,
+            redirectTo : route('admin.root.index', ['tab' => 'modulos']),
+            label      : 'módulo',
+        );
+    }
 
-        return redirect()->route('admin.root.index', ['tab' => 'modulos'])
-            ->with('success', 'Módulo eliminado.');
+    // ─────────────────────────────────────────
+    //  SECCIONES DE BANNERS
+    // ─────────────────────────────────────────
+    public function seccionBannerStore(StoreSeccionBannerRequest $request): RedirectResponse
+    {
+        return $this->crud->store(
+            model      : new SeccionBanner,
+            data       : $request->validated(),
+            redirectTo : route('admin.root.index', ['tab' => 'secciones-banners']),
+            label      : 'sección de banner',
+            beforeSave : function (SeccionBanner $m) use ($request) {
+                if ($request->hasFile('imagen_ayuda')) {
+                    $m->imagen_ayuda = $request->file('imagen_ayuda')
+                        ->store('secciones_banners', 'public');
+                }
+            },
+        );
+    }
+
+    public function seccionBannerUpdate(UpdateSeccionBannerRequest $request, SeccionBanner $seccionBanner): RedirectResponse
+    {
+        return $this->crud->update(
+            model      : $seccionBanner,
+            data       : $request->validated(),
+            redirectTo : route('admin.root.index', ['tab' => 'secciones-banners']),
+            label      : 'sección de banner',
+            beforeSave : function (SeccionBanner $m) use ($request, $seccionBanner) {
+                if ($request->hasFile('imagen_ayuda')) {
+                    // Eliminar imagen anterior si existe
+                    if ($seccionBanner->imagen_ayuda) {
+                        Storage::disk('public')->delete($seccionBanner->imagen_ayuda);
+                    }
+                    $m->imagen_ayuda = $request->file('imagen_ayuda')
+                        ->store('secciones_banners', 'public');
+                }
+            },
+        );
+    }
+
+    public function seccionBannerDestroy(SeccionBanner $seccionBanner): RedirectResponse
+    {
+        return $this->crud->destroy(
+            model        : $seccionBanner,
+            redirectTo   : route('admin.root.index', ['tab' => 'secciones-banners']),
+            label        : 'sección de banner',
+            beforeDelete : function (SeccionBanner $m) {
+                if ($m->imagen_ayuda) {
+                    Storage::disk('public')->delete($m->imagen_ayuda);
+                }
+            },
+        );
     }
 
     // ─────────────────────────────────────────
     //  MODOS DE TEXTO
     // ─────────────────────────────────────────
-    public function modoTextoStore(Request $request): RedirectResponse
+    public function modoTextoStore(StoreModoTextoRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'nombre'         => 'required|string|max:100',
-            'descripcion'    => 'nullable|string|max:255',
-            'cantidad_cajas' => 'nullable|integer|min:1|max:255',
-            'estado'         => 'boolean',
-        ]);
-
-        $data['estado'] = $request->boolean('estado', true);
-
-        ModoTexto::create($data);
-
-        return redirect()->route('admin.root.index', ['tab' => 'modos-texto'])
-            ->with('success', 'Modo de texto creado correctamente.');
+        return $this->crud->store(
+            model      : new ModoTexto,
+            data       : $request->validated(),
+            redirectTo : route('admin.root.index', ['tab' => 'modos-texto']),
+            label      : 'modo de texto',
+        );
     }
 
-    public function modoTextoUpdate(Request $request, ModoTexto $modoTexto): RedirectResponse
+    public function modoTextoUpdate(UpdateModoTextoRequest $request, ModoTexto $modoTexto): RedirectResponse
     {
-        $data = $request->validate([
-            'nombre'         => 'required|string|max:100',
-            'descripcion'    => 'nullable|string|max:255',
-            'cantidad_cajas' => 'nullable|integer|min:1|max:255',
-            'estado'         => 'boolean',
-        ]);
-
-        $data['estado'] = $request->boolean('estado');
-
-        $modoTexto->update($data);
-
-        return redirect()->route('admin.root.index', ['tab' => 'modos-texto'])
-            ->with('success', 'Modo de texto actualizado correctamente.');
+        return $this->crud->update(
+            model      : $modoTexto,
+            data       : $request->validated(),
+            redirectTo : route('admin.root.index', ['tab' => 'modos-texto']),
+            label      : 'modo de texto',
+        );
     }
 
     public function modoTextoDestroy(ModoTexto $modoTexto): RedirectResponse
     {
-        $modoTexto->delete();
-
-        return redirect()->route('admin.root.index', ['tab' => 'modos-texto'])
-            ->with('success', 'Modo de texto eliminado.');
+        return $this->crud->destroy(
+            model      : $modoTexto,
+            redirectTo : route('admin.root.index', ['tab' => 'modos-texto']),
+            label      : 'modo de texto',
+        );
     }
 
     // ─────────────────────────────────────────
-    //  SECCIONES DE TEXTO (secciones_noticias)
+    //  SECCIONES DE TEXTO
     // ─────────────────────────────────────────
-    public function seccionStore(Request $request): RedirectResponse
+    public function seccionStore(StoreSeccionTextoRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'modo_texto_id'    => 'required|exists:modos_texto,id',
-            'nombre'           => 'required|string|max:150',
-            'color_fondo'      => 'nullable|string|max:20',
-            'color_texto'      => 'nullable|string|max:20',
-            'color_borde'      => 'nullable|string|max:20',
-            'visible_en_sitio' => 'boolean',
-            'orden'            => 'nullable|integer|min:0',
-        ]);
-
-        $data['visible_en_sitio'] = $request->boolean('visible_en_sitio', true);
-        $data['orden']            = $data['orden'] ?? 0;
-
-        SeccionNoticia::create($data);
-
-        return redirect()->route('admin.root.index', ['tab' => 'secciones-texto'])
-            ->with('success', 'Sección creada correctamente.');
+        return $this->crud->store(
+            model      : new SeccionTexto,
+            data       : $request->validated(),
+            redirectTo : route('admin.root.index', ['tab' => 'secciones-texto']),
+            label      : 'sección',
+        );
     }
 
-    public function seccionUpdate(Request $request, SeccionNoticia $seccionNoticia): RedirectResponse
+    public function seccionUpdate(UpdateSeccionTextoRequest $request, SeccionTexto $seccionTexto): RedirectResponse
     {
-        $data = $request->validate([
-            'modo_texto_id'    => 'required|exists:modos_texto,id',
-            'nombre'           => 'required|string|max:150',
-            'color_fondo'      => 'nullable|string|max:20',
-            'color_texto'      => 'nullable|string|max:20',
-            'color_borde'      => 'nullable|string|max:20',
-            'visible_en_sitio' => 'boolean',
-            'orden'            => 'nullable|integer|min:0',
-        ]);
-
-        $data['visible_en_sitio'] = $request->boolean('visible_en_sitio');
-
-        $seccionNoticia->update($data);
-
-        return redirect()->route('admin.root.index', ['tab' => 'secciones-texto'])
-            ->with('success', 'Sección actualizada correctamente.');
+        return $this->crud->update(
+            model      : $seccionTexto,
+            data       : $request->validated(),
+            redirectTo : route('admin.root.index', ['tab' => 'secciones-texto']),
+            label      : 'sección',
+        );
     }
 
-    public function seccionDestroy(SeccionNoticia $seccionNoticia): RedirectResponse
+    public function seccionDestroy(SeccionTexto $seccionTexto): RedirectResponse
     {
-        $seccionNoticia->delete();
-
-        return redirect()->route('admin.root.index', ['tab' => 'secciones-texto'])
-            ->with('success', 'Sección eliminada.');
+        return $this->crud->destroy(
+            model      : $seccionTexto,
+            redirectTo : route('admin.root.index', ['tab' => 'secciones-texto']),
+            label      : 'sección',
+        );
     }
 }

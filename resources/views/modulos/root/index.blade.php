@@ -8,17 +8,25 @@
 
 <x-flash-alert />
 
-{{-- ══════════════════════════════════════════════════════════
-     BARRA SUPERIOR: tabs + botón agregar
-══════════════════════════════════════════════════════════ --}}
 <div class="flex items-center justify-between mb-6">
 
-    {{-- Tabs --}}
+    <button onclick="abrirModal('modal-crear-modulo')"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                   text-white transition-all duration-150 shadow-sm hover:shadow-md hover:brightness-110"
+            style="background-color: #196B4A;">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Agregar Módulo
+    </button>
+
     <nav class="flex gap-1 bg-gray-100 p-1 rounded-xl" id="root-tabs">
         @foreach([
-            ['id' => 'modulos',         'label' => 'Módulos'],
-            ['id' => 'modos-texto',     'label' => 'Modos de Texto'],
-            ['id' => 'secciones-texto', 'label' => 'Secciones de Texto'],
+            ['id' => 'modulos',           'label' => 'Módulos'],
+            ['id' => 'secciones-banners',  'label' => 'Banners'],
+            ['id' => 'modos-texto',       'label' => 'Modos de Texto'],
+            ['id' => 'secciones-texto',   'label' => 'Secciones de Texto'],
         ] as $tab)
             <button
                 onclick="cambiarTab('{{ $tab['id'] }}')"
@@ -29,11 +37,10 @@
         @endforeach
     </nav>
 
-    {{-- Botón agregar (dinámico según tab activa) --}}
     <button id="btn-agregar"
             onclick="abrirModalCrear()"
             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                   text-white transition-all duration-150 shadow-sm hover:shadow-md"
+                   text-white transition-all duration-150 shadow-sm hover:shadow-md hover:brightness-110"
             style="background-color: #196B4A;">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -44,13 +51,9 @@
 </div>
 
 
-{{-- ══════════════════════════════════════════════════════════
-     TAB: MÓDULOS
-══════════════════════════════════════════════════════════ --}}
+{{-- TAB: MÓDULOS --}}
 <div id="tab-modulos" class="tab-panel">
     <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-
-        {{-- tabla --}}
         <table class="w-full text-sm">
             <thead>
                 <tr class="text-left" style="background-color: #1a3b2e;">
@@ -80,8 +83,6 @@
                                         'nombre'    => $modulo->nombre,
                                         'tipo'      => $modulo->tipo,
                                         'path_home' => $modulo->path_home,
-                                        'icono'     => $modulo->icono,
-                                        'orden'     => $modulo->orden,
                                         'estado'    => $modulo->estado,
                                     ]) }})"
                                 />
@@ -105,9 +106,65 @@
 </div>
 
 
-{{-- ══════════════════════════════════════════════════════════
-     TAB: MODOS DE TEXTO
-══════════════════════════════════════════════════════════ --}}
+{{-- TAB: SECCIONES DE BANNERS --}}
+<div id="tab-secciones-banners" class="tab-panel hidden">
+    <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <table class="w-full text-sm">
+            <thead>
+                <tr style="background-color: #1a3b2e;">
+                    <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-left">Nombre</th>
+                    <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-center">Ancho</th>
+                    <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-center">Alto</th>
+                    <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-center">Límite</th>
+                    <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-center">Visible</th>
+                    <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @forelse($seccionesBanners as $sb)
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-5 py-3.5 font-medium text-gray-800">{{ $sb->nombre }}</td>
+                        <td class="px-5 py-3.5 text-center text-gray-600">{{ $sb->ancho ?? '—' }}</td>
+                        <td class="px-5 py-3.5 text-center text-gray-600">{{ $sb->alto ?? '—' }}</td>
+                        <td class="px-5 py-3.5 text-center text-gray-600">{{ $sb->cantidad_limite ?? '—' }}</td>
+                        <td class="px-5 py-3.5 text-center">
+                            <x-badge-estado :activo="$sb->visible_en_sitio" label-on="sí" label-off="no" />
+                        </td>
+                        <td class="px-5 py-3.5 text-right">
+                            <div class="inline-flex items-center gap-1">
+                                <x-btn-edit
+                                    onclick="abrirModalEditar('secciones-banners', {{ json_encode([
+                                        'id'              => $sb->id,
+                                        'nombre'          => $sb->nombre,
+                                        'ancho'           => $sb->ancho,
+                                        'alto'            => $sb->alto,
+                                        'cantidad_limite' => $sb->cantidad_limite,
+                                        'comentario'      => $sb->comentario,
+                                        'imagen_ayuda'    => $sb->imagen_ayuda,
+                                        'visible_en_sitio'=> $sb->visible_en_sitio,
+                                    ]) }})"
+                                />
+                                <x-btn-delete
+                                    :action="route('admin.root.secciones-banners.destroy', $sb->id)"
+                                    :confirm="'¿Eliminar la sección \'' . $sb->nombre . '\'?'"
+                                />
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">
+                            No hay secciones de banners registradas.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+{{-- TAB: MODOS DE TEXTO --}}
 <div id="tab-modos-texto" class="tab-panel hidden">
     <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
         <table class="w-full text-sm">
@@ -135,7 +192,6 @@
                                     onclick="abrirModalEditar('modos-texto', {{ json_encode([
                                         'id'             => $modo->id,
                                         'nombre'         => $modo->nombre,
-                                        'descripcion'    => $modo->descripcion,
                                         'cantidad_cajas' => $modo->cantidad_cajas,
                                         'estado'         => $modo->estado,
                                     ]) }})"
@@ -160,9 +216,7 @@
 </div>
 
 
-{{-- ══════════════════════════════════════════════════════════
-     TAB: SECCIONES DE TEXTO
-══════════════════════════════════════════════════════════ --}}
+{{-- TAB: SECCIONES DE TEXTO --}}
 <div id="tab-secciones-texto" class="tab-panel hidden">
     <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
         <table class="w-full text-sm">
@@ -219,7 +273,6 @@
                                         'color_texto'      => $seccion->color_texto,
                                         'color_borde'      => $seccion->color_borde,
                                         'visible_en_sitio' => $seccion->visible_en_sitio,
-                                        'orden'            => $seccion->orden,
                                     ]) }})"
                                 />
                                 <x-btn-delete
@@ -241,102 +294,33 @@
     </div>
 </div>
 
-
-{{-- ══════════════════════════════════════════════════════════
-     MODALES — CREAR
-══════════════════════════════════════════════════════════ --}}
-
-{{-- Modal: Crear Módulo --}}
-<x-modal id="modal-crear-modulo" title="Agregar Módulo">
-    <form action="{{ route('admin.root.modulos.store') }}" method="POST" class="space-y-4">
-        @csrf
-        @include('modulos.root._form-modulo', ['modulo' => null])
-        @include('modulos.root._form-footer', ['modalId' => 'modal-crear-modulo', 'label' => 'Crear módulo'])
-    </form>
-</x-modal>
-
-{{-- Modal: Crear Modo de Texto --}}
-<x-modal id="modal-crear-modo-texto" title="Agregar Modo de Texto">
-    <form action="{{ route('admin.root.modos-texto.store') }}" method="POST" class="space-y-4">
-        @csrf
-        @include('modulos.root._form-modo-texto', ['modo' => null])
-        @include('modulos.root._form-footer', ['modalId' => 'modal-crear-modo-texto', 'label' => 'Crear modo'])
-    </form>
-</x-modal>
-
-{{-- Modal: Crear Sección --}}
-<x-modal id="modal-crear-seccion" title="Agregar Sección de Texto">
-    <form action="{{ route('admin.root.secciones.store') }}" method="POST" class="space-y-4">
-        @csrf
-        @include('modulos.root._form-seccion', ['seccion' => null, 'modosTexto' => $modosTexto])
-        @include('modulos.root._form-footer', ['modalId' => 'modal-crear-seccion', 'label' => 'Crear sección'])
-    </form>
-</x-modal>
-
-
-{{-- ══════════════════════════════════════════════════════════
-     MODALES — EDITAR (se rellenan por JS)
-══════════════════════════════════════════════════════════ --}}
-
-{{-- Modal: Editar Módulo --}}
-<x-modal id="modal-editar-modulo" title="Editar Módulo">
-    <form id="form-editar-modulo" method="POST" class="space-y-4">
-        @csrf
-        @method('PUT')
-        @include('modulos.root._form-modulo', ['modulo' => null])
-        @include('modulos.root._form-footer', ['modalId' => 'modal-editar-modulo', 'label' => 'Guardar cambios'])
-    </form>
-</x-modal>
-
-{{-- Modal: Editar Modo de Texto --}}
-<x-modal id="modal-editar-modo-texto" title="Editar Modo de Texto">
-    <form id="form-editar-modo-texto" method="POST" class="space-y-4">
-        @csrf
-        @method('PUT')
-        @include('modulos.root._form-modo-texto', ['modo' => null])
-        @include('modulos.root._form-footer', ['modalId' => 'modal-editar-modo-texto', 'label' => 'Guardar cambios'])
-    </form>
-</x-modal>
-
-{{-- Modal: Editar Sección --}}
-<x-modal id="modal-editar-seccion" title="Editar Sección de Texto">
-    <form id="form-editar-seccion" method="POST" class="space-y-4">
-        @csrf
-        @method('PUT')
-        @include('modulos.root._form-seccion', ['seccion' => null, 'modosTexto' => $modosTexto])
-        @include('modulos.root._form-footer', ['modalId' => 'modal-editar-seccion', 'label' => 'Guardar cambios'])
-    </form>
-</x-modal>
+@include('modulos.root._modals')
 
 @endsection
 
 
 @push('scripts')
 <script>
-// ─── Rutas base (para construir URLs de update) ───────────────────────────────
 const ROUTES = {
-    'modulos':         '/admin/root/modulos',
-    'modos-texto':     '/admin/root/modos-texto',
-    'secciones-texto': '/admin/root/secciones',
+    'modulos':           '/admin/root/modulos',
+    'secciones-banners': '/admin/root/secciones-banners',
+    'modos-texto':       '/admin/root/modos-texto',
+    'secciones-texto':   '/admin/root/secciones',
 };
 
 const LABELS_AGREGAR = {
-    'modulos':         'Agregar Módulo',
-    'modos-texto':     'Agregar Modo de Texto',
-    'secciones-texto': 'Agregar Sección',
+    'modulos':           'Agregar Módulo',
+    'secciones-banners': 'Agregar Sección de Banner',
+    'modos-texto':       'Agregar Modo de Texto',
+    'secciones-texto':   'Agregar Sección',
 };
 
-// ─── Tab activa ───────────────────────────────────────────────────────────────
 let tabActiva = '{{ request("tab", "modulos") }}';
 
 function cambiarTab(tab) {
     tabActiva = tab;
-
-    // Ocultar todos los paneles
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
     document.getElementById('tab-' + tab).classList.remove('hidden');
-
-    // Estilos de tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('bg-white', 'text-gray-800', 'shadow-sm');
         btn.classList.add('text-gray-500');
@@ -344,115 +328,141 @@ function cambiarTab(tab) {
     const activeBtn = document.getElementById('tab-btn-' + tab);
     activeBtn.classList.add('bg-white', 'text-gray-800', 'shadow-sm');
     activeBtn.classList.remove('text-gray-500');
-
-    // Label del botón agregar
     document.getElementById('btn-agregar-label').textContent = LABELS_AGREGAR[tab];
 }
 
-// ─── Modal helpers ─────────────────────────────────────────────────────────────
 function abrirModal(id) {
     document.getElementById(id).classList.remove('hidden');
 }
 function cerrarModal(id) {
     document.getElementById(id).classList.add('hidden');
 }
-
-// ─── Abrir modal de CREAR según tab activa ────────────────────────────────────
+function cerrarModalOverlay(event, id) {
+    if (event.target === event.currentTarget) cerrarModal(id);
+}
 function abrirModalCrear() {
     const ids = {
-        'modulos':         'modal-crear-modulo',
-        'modos-texto':     'modal-crear-modo-texto',
-        'secciones-texto': 'modal-crear-seccion',
+        'modulos':           'modal-crear-modulo',
+        'secciones-banners': 'modal-crear-seccion-banner',
+        'modos-texto':       'modal-crear-modo-texto',
+        'secciones-texto':   'modal-crear-seccion',
     };
     abrirModal(ids[tabActiva]);
 }
 
-// ─── Abrir modal de EDITAR y rellenar datos ───────────────────────────────────
 function abrirModalEditar(tipo, datos) {
     const configs = {
         'modulos': {
-            modal:  'modal-editar-modulo',
-            form:   'form-editar-modulo',
-            campos: ['nombre', 'path_home', 'icono', 'orden'],
+            modal:   'modal-editar-modulo',
+            campos:  ['nombre', 'path_home'],
             selects: ['tipo'],
-            estado: 'estado',
+            estado:  'estado',
+        },
+        'secciones-banners': {
+            modal:  'modal-editar-seccion-banner',
+            campos: ['nombre', 'ancho', 'alto', 'cantidad_limite', 'comentario'],
+            estado: 'visible_en_sitio',
+            imagen: { campo: 'imagen_ayuda', preview: 'preview-esb-imagen', label: 'esb-imagen-actual' },
         },
         'modos-texto': {
             modal:  'modal-editar-modo-texto',
-            form:   'form-editar-modo-texto',
-            campos: ['nombre', 'descripcion', 'cantidad_cajas'],
+            campos: ['nombre', 'cantidad_cajas'],
             estado: 'estado',
         },
         'secciones-texto': {
-            modal:  'modal-editar-seccion',
-            form:   'form-editar-seccion',
-            campos: ['nombre', 'color_fondo', 'color_texto', 'color_borde', 'orden'],
+            modal:   'modal-editar-seccion',
+            campos:  ['nombre'],
             selects: ['modo_texto_id'],
-            estado: 'visible_en_sitio',
             colores: ['color_fondo', 'color_texto', 'color_borde'],
+            estado:  'visible_en_sitio',
         },
     };
 
-    const cfg  = configs[tipo];
-    const form = document.getElementById(cfg.form);
+    const cfg   = configs[tipo];
+    const modal = document.getElementById(cfg.modal);
+    const form  = modal.querySelector('form');
 
-    // Acción del form
     form.action = ROUTES[tipo] + '/' + datos.id;
 
-    // Rellenar inputs de texto/número
     (cfg.campos || []).forEach(campo => {
         const el = form.querySelector(`input[name="${campo}"], textarea[name="${campo}"]`);
         if (el) el.value = datos[campo] ?? '';
     });
 
-    // Rellenar selects
     (cfg.selects || []).forEach(campo => {
         const el = form.querySelector(`select[name="${campo}"]`);
         if (el) el.value = datos[campo] ?? '';
     });
 
-    // Rellenar color pickers + textos sincronizados
     (cfg.colores || []).forEach(campo => {
         const picker = form.querySelector(`input[type="color"][name="${campo}"]`);
-        const text   = form.querySelector(`.color-pair input[type="color"][name="${campo}"]`)
-                        ?.closest('.color-pair')
-                        ?.querySelector('.color-text');
-        const val = datos[campo] || '';
-        if (picker) picker.value = val || picker.defaultValue;
+        const pair   = picker ? picker.closest('.color-pair') : null;
+        const text   = pair ? pair.querySelector('.color-text') : null;
+        const val    = datos[campo] || '';
+        if (picker) picker.value = val || '#ffffff';
         if (text)   text.value   = val;
     });
 
-    // Rellenar checkbox de estado
     if (cfg.estado) {
         const chk = form.querySelector(`input[type="checkbox"][name="${cfg.estado}"]`);
-        if (chk) chk.checked = !!datos[cfg.estado];
+        if (chk) chk.checked = parseInt(datos[cfg.estado]) === 1;
+    }
+
+    // Imagen de ayuda: mostrar nombre del archivo actual
+    if (cfg.imagen && datos[cfg.imagen.campo]) {
+        const label = document.getElementById(cfg.imagen.label);
+        if (label) {
+            label.textContent = 'Actual: ' + datos[cfg.imagen.campo];
+            label.classList.remove('hidden');
+        }
     }
 
     abrirModal(cfg.modal);
 }
 
-// ─── Sync color picker ↔ texto (delegado, funciona con cualquier modal) ───────
+// Selección de archivo: muestra nombre + preview
+function archivoSeleccionado(input, nombreId, previewId) {
+    const nombre  = document.getElementById(nombreId);
+    const preview = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+        if (nombre)  nombre.textContent = input.files[0].name;
+        if (preview) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+}
+
+// Sync color picker ↔ texto
 document.addEventListener('input', function (e) {
     const pair = e.target.closest('.color-pair');
     if (!pair) return;
-
     if (e.target.classList.contains('color-picker')) {
-        pair.querySelector('.color-text').value = e.target.value;
+        const text = pair.querySelector('.color-text');
+        if (text) text.value = e.target.value;
     } else if (e.target.classList.contains('color-text')) {
         if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
-            pair.querySelector('.color-picker').value = e.target.value;
+            const picker = pair.querySelector('.color-picker');
+            if (picker) picker.value = e.target.value;
         }
     }
 });
 
-// ─── Cerrar modal con Escape ──────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
         document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
     }
 });
 
-// ─── Inicializar tab según query param ───────────────────────────────────────
+window.ModalCrud = {
+    close: cerrarModal,
+    closeOnOverlay: cerrarModalOverlay,
+};
+
 cambiarTab(tabActiva);
 </script>
 @endpush
