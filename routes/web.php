@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\admin\DashboardController;
 use App\Http\Controllers\RootController;
 use App\Http\Controllers\admin\BannerController;
+use App\Http\Controllers\admin\AdminController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -30,9 +31,32 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/', fn() => redirect()->route('admin.dashboard'));
 
+        // ── Módulo Administradores (CRUD) ────────────────────────────────────
+        Route::resource('usuarios', AdminController::class, [
+            'names' => [
+                'index'   => 'admin.index',
+                'create'  => 'admin.create',
+                'store'   => 'admin.store',
+                'show'    => 'admin.show',
+                'edit'    => 'admin.edit',
+                'update'  => 'admin.update',
+                'destroy' => 'admin.destroy',
+            ],
+            'parameters' => [
+                'usuarios' => 'admin'
+            ]
+        ]);
+        
+        // Ruta para exportar a Excel
+        Route::get('usuarios/exportar/excel', [AdminController::class, 'exportExcel'])
+            ->name('admin.export-excel');
+        
+        // Ruta para cambiar estado (activar/desactivar)
+        Route::patch('usuarios/{admin}/toggle-estado', [AdminController::class, 'toggleActivo'])
+            ->name('admin.toggle-activo');
+            
         // ── Módulo Root ──────────────────────────────────────────────────
         Route::prefix('root')->name('root.')->group(function () {
-
             Route::get('/', [RootController::class, 'index'])->name('index');
 
             // Módulos
@@ -57,7 +81,6 @@ Route::middleware(['auth'])->group(function () {
         });
 
         // ── Banners (Rutas amigables) ─────────────────────────────────────────
-        // Opción 1: Resource con URLs amigables
         Route::resource('banners', BannerController::class, [
             'names' => [
                 'index'   => 'banners.index',
@@ -69,15 +92,6 @@ Route::middleware(['auth'])->group(function () {
                 'destroy' => 'banners.destroy',
             ]
         ]);
-        
-        // Opción 2: URLs aún más amigables (personalizadas)
-        // Route::get('banners', [BannerController::class, 'index'])->name('banners.index');
-        // Route::get('banners/crear', [BannerController::class, 'create'])->name('banners.create');
-        // Route::post('banners', [BannerController::class, 'store'])->name('banners.store');
-        // Route::get('banners/{banner}', [BannerController::class, 'show'])->name('banners.show');
-        // Route::get('banners/{banner}/editar', [BannerController::class, 'edit'])->name('banners.edit');
-        // Route::put('banners/{banner}', [BannerController::class, 'update'])->name('banners.update');
-        // Route::delete('banners/{banner}', [BannerController::class, 'destroy'])->name('banners.destroy');
         
         Route::patch('banners/{banner}/toggle-estado', [BannerController::class, 'toggleEstado'])
             ->name('banners.toggle-estado');

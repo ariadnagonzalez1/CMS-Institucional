@@ -36,11 +36,13 @@ class Banner extends Model
         'fecha_fin' => 'date',
     ];
 
+    // Relación con sección (tabla: secciones_banners)
     public function seccion()
     {
         return $this->belongsTo(SeccionBanner::class, 'seccion_banner_id');
     }
 
+    // Relación con tipo (tabla: tipos_banners)
     public function tipo()
     {
         return $this->belongsTo(TipoBanner::class, 'tipo_banner_id');

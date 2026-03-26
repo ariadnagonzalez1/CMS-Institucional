@@ -6,16 +6,19 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreBannerRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool 
+    { 
+        return true; 
+    }
 
     public function rules(): array
     {
         return [
-            'seccion_banner_id' => ['required', 'integer', 'exists:secciones_banners,id'],
-            'tipo_banner_id'    => ['nullable', 'integer', 'exists:tipos_banners,id'],
+            'seccion_banner_id' => ['required', 'integer', 'exists:secciones_banners,id'], // ✅ Corregido: secciones_banners
+            'tipo_banner_id'    => ['nullable', 'integer', 'exists:tipos_banners,id'],     // ✅ Corregido: tipos_banners
             'titulo_epigrafe'   => ['nullable', 'string', 'max:255'],
             'comentario'        => ['nullable', 'string'],
-            'ruta_imagen'       => ['required', 'string', 'max:255'],
+            'ruta_imagen'       => ['required', 'url', 'max:255'],
             'borde_px'          => ['nullable', 'integer', 'min:0'],
             'color_borde'       => ['nullable', 'string', 'max:20'],
             'alineacion'        => ['nullable', 'string', 'max:20'],
@@ -36,17 +39,26 @@ class StoreBannerRequest extends FormRequest
             'seccion_banner_id.required' => 'La sección es obligatoria.',
             'seccion_banner_id.exists'   => 'La sección seleccionada no existe.',
             'ruta_imagen.required'       => 'La imagen es obligatoria.',
+            'ruta_imagen.url'            => 'La URL de la imagen no es válida.',
             'url_destino.url'            => 'La URL de destino no tiene un formato válido.',
             'fecha_fin.after_or_equal'   => 'La fecha de fin debe ser igual o posterior a la fecha de inicio.',
         ];
     }
 
     protected function prepareForValidation(): void
-    {
-        $this->merge([
-            'tipo_banner_id' => $this->input('tipo_banner_id') ?: null,
-            'orden'          => $this->input('orden', 0),
-            'estado'         => $this->input('estado', 'activo'),
-        ]);
+{
+    // Convertir el toggle a activo/inactivo
+    $estado = $this->input('estado');
+    if ($estado === 'on' || $estado === '1' || $estado === true) {
+        $estado = 'activo';
+    } elseif ($estado === 'off' || $estado === '0' || $estado === false) {
+        $estado = 'inactivo';
     }
+    
+    $this->merge([
+        'tipo_banner_id' => $this->input('tipo_banner_id') ?: null,
+        'orden'          => $this->input('orden', 0),
+        'estado'         => $estado ?? 'activo',
+    ]);
+}
 }

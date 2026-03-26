@@ -9,7 +9,7 @@ class TipoBanner extends Model
 {
     use HasFactory;
 
-    protected $table = 'tipos_banners';
+    protected $table = 'tipos_banners'; // ✅ Nombre correcto de la tabla
 
     protected $fillable = [
         'nombre',
