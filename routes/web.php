@@ -8,7 +8,9 @@ use App\Http\Controllers\admin\DashboardController;
 use App\Http\Controllers\RootController;
 use App\Http\Controllers\admin\BannerController;
 use App\Http\Controllers\admin\AdminController;
-use App\Http\Controllers\admin\AgendaController; // ← Importar AgendaController
+use App\Http\Controllers\admin\AgendaController;
+use App\Http\Controllers\admin\AlbumFotoController;
+use App\Http\Controllers\admin\AlbumFotoItemController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -75,6 +77,34 @@ Route::middleware(['auth'])->group(function () {
         // Ruta para cambiar estado del evento (activar/desactivar)
         Route::patch('agenda/{agendum}/toggle-estado', [AgendaController::class, 'toggleEstado'])
             ->name('agenda.toggle-estado');
+        
+        // ── Módulo Álbumes de Fotos ──────────────────────────────────────────
+        Route::resource('albumes', AlbumFotoController::class, [
+            'names' => [
+                'index'   => 'albumes.index',
+                'create'  => 'albumes.create',
+                'store'   => 'albumes.store',
+                'show'    => 'albumes.show',     // ← Agregado show
+                'edit'    => 'albumes.edit',
+                'update'  => 'albumes.update',
+                'destroy' => 'albumes.destroy',
+            ],
+            'parameters' => [
+                'albumes' => 'album'
+            ]
+            // Removido 'except' para incluir show
+        ]);
+        
+        // Rutas para gestión de fotos dentro del álbum
+        Route::prefix('albumes/{album}')->name('albumes.')->group(function () {
+            Route::post('fotos', [AlbumFotoItemController::class, 'store'])->name('fotos.store');
+            Route::delete('fotos/{foto}', [AlbumFotoItemController::class, 'destroy'])->name('fotos.destroy');
+            Route::patch('fotos/{foto}/portada', [AlbumFotoItemController::class, 'setPortada'])->name('fotos.portada');
+        });
+        
+        // Rutas adicionales para el álbum
+        Route::patch('albumes/{album}/toggle-estado', [AlbumFotoController::class, 'toggleEstado'])->name('albumes.toggle-estado');
+        Route::patch('albumes/{album}/toggle-visible', [AlbumFotoController::class, 'toggleVisible'])->name('albumes.toggle-visible');
             
         // ── Módulo Root ──────────────────────────────────────────────────
         Route::prefix('root')->name('root.')->group(function () {
