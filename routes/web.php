@@ -11,6 +11,7 @@ use App\Http\Controllers\admin\AdminController;
 use App\Http\Controllers\admin\AgendaController;
 use App\Http\Controllers\admin\AlbumFotoController;
 use App\Http\Controllers\admin\AlbumFotoItemController;
+use App\Http\Controllers\admin\DescargableController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -71,7 +72,7 @@ Route::middleware(['auth'])->group(function () {
             'parameters' => [
                 'agenda' => 'agendum'
             ],
-            'except' => ['show'] // Excluir el método show
+            'except' => ['show']
         ]);
         
         // Ruta para cambiar estado del evento (activar/desactivar)
@@ -95,18 +96,36 @@ Route::middleware(['auth'])->group(function () {
         ]);
         
         // Rutas para gestión de fotos dentro del álbum
-        // Rutas para gestión de fotos dentro del álbum
-Route::prefix('albumes/{album}')->name('albumes.')->group(function () {
-    Route::post('fotos', [AlbumFotoItemController::class, 'store'])->name('fotos.store');
-    Route::match(['PUT', 'PATCH'], 'fotos/{foto}', [AlbumFotoItemController::class, 'update'])->name('fotos.update'); // Acepta PUT y PATCH
-    Route::delete('fotos/{foto}', [AlbumFotoItemController::class, 'destroy'])->name('fotos.destroy');
-    Route::patch('fotos/{foto}/portada', [AlbumFotoItemController::class, 'setPortada'])->name('fotos.portada');
-    Route::post('fotos/{foto}/recortar', [AlbumFotoItemController::class, 'recortar'])->name('fotos.recortar');
-});
+        Route::prefix('albumes/{album}')->name('albumes.')->group(function () {
+            Route::post('fotos', [AlbumFotoItemController::class, 'store'])->name('fotos.store');
+            Route::match(['PUT', 'PATCH'], 'fotos/{foto}', [AlbumFotoItemController::class, 'update'])->name('fotos.update');
+            Route::delete('fotos/{foto}', [AlbumFotoItemController::class, 'destroy'])->name('fotos.destroy');
+            Route::patch('fotos/{foto}/portada', [AlbumFotoItemController::class, 'setPortada'])->name('fotos.portada');
+            Route::post('fotos/{foto}/recortar', [AlbumFotoItemController::class, 'recortar'])->name('fotos.recortar');
+        });
         
         // Rutas adicionales para el álbum
         Route::patch('albumes/{album}/toggle-estado', [AlbumFotoController::class, 'toggleEstado'])->name('albumes.toggle-estado');
         Route::patch('albumes/{album}/toggle-visible', [AlbumFotoController::class, 'toggleVisible'])->name('albumes.toggle-visible');
+        
+        // ── Módulo Trámites y Formularios (Descargables) ──────────────────────
+        Route::resource('tramites', DescargableController::class, [
+            'names' => [
+                'index'   => 'descargables.index',
+                'store'   => 'descargables.store',
+                'update'  => 'descargables.update',
+                'destroy' => 'descargables.destroy',
+            ],
+            'except' => ['create', 'edit', 'show']
+        ]);
+        
+        // Ruta para descargar archivo
+        Route::get('tramites/{descargable}/download', [DescargableController::class, 'download'])
+            ->name('descargables.download');
+        
+        // Ruta para cambiar estado (activar/desactivar)
+        Route::patch('tramites/{descargable}/toggle-estado', [DescargableController::class, 'toggleEstado'])
+            ->name('descargables.toggle-estado');
             
         // ── Módulo Root ──────────────────────────────────────────────────
         Route::prefix('root')->name('root.')->group(function () {
