@@ -111,22 +111,32 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex items-center justify-end gap-2">
+                                {{-- Botón Toggle Estado --}}
                                 <form action="{{ route('admin.admin.toggle-activo', $admin) }}" method="POST" class="inline">
                                     @csrf
                                     @method('PATCH')
-                                    <button type="submit" class="text-gray-500 hover:text-yellow-600 transition" title="{{ $admin->activo ? 'Desactivar' : 'Activar' }}">
-                                        {{ $admin->activo ? '🔘' : '⚪' }}
+                                    <button type="submit" 
+                                            class="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-white hover:bg-yellow-600 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-1" 
+                                            title="{{ $admin->activo ? 'Desactivar' : 'Activar' }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                        </svg>
                                     </button>
                                 </form>
                                 
-                                <a href="{{ route('admin.admin.edit', $admin) }}" class="text-blue-600 hover:text-blue-900" title="Editar">✏️</a>
+                                {{-- Botón Editar --}}
+                                <x-btn-edit 
+                                    onclick="window.location.href='{{ route('admin.admin.edit', $admin) }}'"
+                                    title="Editar administrador"
+                                />
                                 
+                                {{-- Botón Eliminar (solo si no es el usuario actual) --}}
                                 @if($admin->id !== auth()->id())
-                                    <form action="{{ route('admin.admin.destroy', $admin) }}" method="POST" class="inline" onsubmit="return confirm('¿Eliminar este administrador?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-900" title="Eliminar">🗑️</button>
-                                    </form>
+                                    <x-btn-delete 
+                                        :action="route('admin.admin.destroy', $admin)"
+                                        :confirm="'¿Eliminar al administrador ' . $admin->name . ' ' . ($admin->apellido ?? '') . '? Esta acción no se puede deshacer.'"
+                                        title="Eliminar administrador"
+                                    />
                                 @endif
                             </div>
                         </td>

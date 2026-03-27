@@ -8,6 +8,7 @@ use App\Http\Controllers\admin\DashboardController;
 use App\Http\Controllers\RootController;
 use App\Http\Controllers\admin\BannerController;
 use App\Http\Controllers\admin\AdminController;
+use App\Http\Controllers\admin\AgendaController; // ← Importar AgendaController
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -54,6 +55,26 @@ Route::middleware(['auth'])->group(function () {
         // Ruta para cambiar estado (activar/desactivar)
         Route::patch('usuarios/{admin}/toggle-estado', [AdminController::class, 'toggleActivo'])
             ->name('admin.toggle-activo');
+        
+        // ── Módulo Agenda (Calendario) ────────────────────────────────────────
+        Route::resource('agenda', AgendaController::class, [
+            'names' => [
+                'index'   => 'agenda.index',
+                'create'  => 'agenda.create',
+                'store'   => 'agenda.store',
+                'edit'    => 'agenda.edit',
+                'update'  => 'agenda.update',
+                'destroy' => 'agenda.destroy',
+            ],
+            'parameters' => [
+                'agenda' => 'agendum'
+            ],
+            'except' => ['show'] // Excluir el método show
+        ]);
+        
+        // Ruta para cambiar estado del evento (activar/desactivar)
+        Route::patch('agenda/{agendum}/toggle-estado', [AgendaController::class, 'toggleEstado'])
+            ->name('agenda.toggle-estado');
             
         // ── Módulo Root ──────────────────────────────────────────────────
         Route::prefix('root')->name('root.')->group(function () {
