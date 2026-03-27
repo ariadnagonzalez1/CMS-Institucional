@@ -84,7 +84,7 @@ Route::middleware(['auth'])->group(function () {
                 'index'   => 'albumes.index',
                 'create'  => 'albumes.create',
                 'store'   => 'albumes.store',
-                'show'    => 'albumes.show',     // ← Agregado show
+                'show'    => 'albumes.show',
                 'edit'    => 'albumes.edit',
                 'update'  => 'albumes.update',
                 'destroy' => 'albumes.destroy',
@@ -92,15 +92,17 @@ Route::middleware(['auth'])->group(function () {
             'parameters' => [
                 'albumes' => 'album'
             ]
-            // Removido 'except' para incluir show
         ]);
         
         // Rutas para gestión de fotos dentro del álbum
-        Route::prefix('albumes/{album}')->name('albumes.')->group(function () {
-            Route::post('fotos', [AlbumFotoItemController::class, 'store'])->name('fotos.store');
-            Route::delete('fotos/{foto}', [AlbumFotoItemController::class, 'destroy'])->name('fotos.destroy');
-            Route::patch('fotos/{foto}/portada', [AlbumFotoItemController::class, 'setPortada'])->name('fotos.portada');
-        });
+        // Rutas para gestión de fotos dentro del álbum
+Route::prefix('albumes/{album}')->name('albumes.')->group(function () {
+    Route::post('fotos', [AlbumFotoItemController::class, 'store'])->name('fotos.store');
+    Route::match(['PUT', 'PATCH'], 'fotos/{foto}', [AlbumFotoItemController::class, 'update'])->name('fotos.update'); // Acepta PUT y PATCH
+    Route::delete('fotos/{foto}', [AlbumFotoItemController::class, 'destroy'])->name('fotos.destroy');
+    Route::patch('fotos/{foto}/portada', [AlbumFotoItemController::class, 'setPortada'])->name('fotos.portada');
+    Route::post('fotos/{foto}/recortar', [AlbumFotoItemController::class, 'recortar'])->name('fotos.recortar');
+});
         
         // Rutas adicionales para el álbum
         Route::patch('albumes/{album}/toggle-estado', [AlbumFotoController::class, 'toggleEstado'])->name('albumes.toggle-estado');

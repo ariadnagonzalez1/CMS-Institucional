@@ -60,13 +60,42 @@ class AlbumFotoItemController extends Controller
             
             DB::commit();
             
-            return redirect()->route('admin.albumes.index')
+            return redirect()->route('admin.albumes.show', $album)
                 ->with('success', count($request->file('fotos')) . ' foto(s) agregada(s) correctamente.');
                 
         } catch (\Throwable $e) {
             DB::rollBack();
             return redirect()->back()
                 ->with('error', 'Error al subir las fotos: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update the specified photo (epígrafe).
+     */
+    public function update(Request $request, AlbumFoto $album, AlbumFotoItem $foto)
+    {
+        $request->validate([
+            'epigrafe' => 'nullable|string|max:255',
+            'es_foto_epigrafe' => 'sometimes|boolean',
+        ]);
+        
+        try {
+            DB::beginTransaction();
+            
+            $foto->epigrafe = $request->input('epigrafe');
+            $foto->es_foto_epigrafe = $request->input('es_foto_epigrafe', false);
+            $foto->save();
+            
+            DB::commit();
+            
+            return redirect()->route('admin.albumes.show', $album)
+                ->with('success', 'Epígrafe actualizado correctamente.');
+                
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'Error al actualizar el epígrafe: ' . $e->getMessage());
         }
     }
 
@@ -87,7 +116,7 @@ class AlbumFotoItemController extends Controller
             
             DB::commit();
             
-            return redirect()->route('admin.albumes.index')
+            return redirect()->route('admin.albumes.show', $album)
                 ->with('success', 'Foto eliminada correctamente.');
                 
         } catch (\Throwable $e) {
@@ -111,7 +140,7 @@ class AlbumFotoItemController extends Controller
             
             DB::commit();
             
-            return redirect()->route('admin.albumes.index')
+            return redirect()->route('admin.albumes.show', $album)
                 ->with('success', 'Foto de portada actualizada.');
                 
         } catch (\Throwable $e) {
@@ -120,4 +149,54 @@ class AlbumFotoItemController extends Controller
                 ->with('error', 'Error al establecer la portada.');
         }
     }
+    public function recortar(Request $request, AlbumFoto $album, AlbumFotoItem $foto)
+{
+    $request->validate([
+        'imagen' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+    ]);
+    
+    try {
+        DB::beginTransaction();
+        
+        // Obtener la imagen recortada
+        $imagenRecortada = $request->file('imagen');
+        $extension = $imagenRecortada->getClientOriginalExtension();
+        $filename = Str::uuid() . '.' . $extension;
+        
+        // Eliminar la imagen anterior
+        if ($foto->archivo && Storage::disk('public')->exists($foto->archivo)) {
+            Storage::disk('public')->delete($foto->archivo);
+        }
+        
+        // Guardar la nueva imagen
+        $path = $imagenRecortada->storeAs('albumes/' . $album->id, $filename, 'public');
+        
+        // Obtener dimensiones de la nueva imagen
+        $imageInfo = getimagesize($imagenRecortada->getRealPath());
+        $ancho = $imageInfo[0] ?? null;
+        $alto = $imageInfo[1] ?? null;
+        
+        // Actualizar la foto
+        $foto->archivo = $path;
+        $foto->nombre_archivo = $filename;
+        $foto->ancho = $ancho;
+        $foto->alto = $alto;
+        $foto->save();
+        
+        DB::commit();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Imagen recortada correctamente'
+        ]);
+        
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al recortar la imagen: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
 }
