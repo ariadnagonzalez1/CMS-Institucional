@@ -13,6 +13,7 @@ use App\Http\Controllers\admin\AlbumFotoController;
 use App\Http\Controllers\admin\AlbumFotoItemController;
 use App\Http\Controllers\admin\DescargableController;
 use App\Http\Controllers\admin\NoticiaController;
+use App\Http\Controllers\admin\MultimediaController; // ← Agregar esta línea
 
 
 Route::get('/', function () {
@@ -189,5 +190,24 @@ Route::middleware(['auth'])->group(function () {
             // Eliminar imagen
             Route::delete('/imagen/{id}', [NoticiaController::class, 'destroyImage'])->name('destroy-image');
         });
+
+        // ── Módulo Multimedia (Audio/Video) ──────────────────────────────────────
+        Route::resource('multimedia', MultimediaController::class, [
+            'names' => [
+                'index'   => 'multimedia.index',
+                'create'  => 'multimedia.create',
+                'store'   => 'multimedia.store',
+                'edit'    => 'multimedia.edit',
+                'update'  => 'multimedia.update',
+                'destroy' => 'multimedia.destroy',
+            ],
+            'parameters' => [
+                'multimedia' => 'multimedium'
+            ]
+        ]);
+
+        // Ruta para cambiar estado (activar/desactivar)
+        Route::patch('multimedia/{multimedium}/toggle-estado', [MultimediaController::class, 'toggleEstado'])
+            ->name('multimedia.toggle-estado');
     }); // ← Cierra el grupo Route::prefix('admin')
 }); // ← Cierra el grupo Route::middleware(['auth'])
