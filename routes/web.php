@@ -12,6 +12,8 @@ use App\Http\Controllers\admin\AgendaController;
 use App\Http\Controllers\admin\AlbumFotoController;
 use App\Http\Controllers\admin\AlbumFotoItemController;
 use App\Http\Controllers\admin\DescargableController;
+use App\Http\Controllers\admin\NoticiaController;
+
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -167,5 +169,25 @@ Route::middleware(['auth'])->group(function () {
         
         Route::patch('banners/{banner}/toggle-estado', [BannerController::class, 'toggleEstado'])
             ->name('banners.toggle-estado');
-    });
-});
+
+        // ── Noticias ──────────────────────────────────────────────────────
+        Route::prefix('noticias')->name('noticias.')->group(function () {
+            Route::get('/', [NoticiaController::class, 'index'])->name('index');
+            Route::get('/crear', [NoticiaController::class, 'create'])->name('create');
+            Route::post('/', [NoticiaController::class, 'store'])->name('store');
+            Route::get('/{noticium}', [NoticiaController::class, 'show'])->name('show');
+            Route::get('/{noticium}/editar', [NoticiaController::class, 'edit'])->name('edit');
+            Route::put('/{noticium}', [NoticiaController::class, 'update'])->name('update');
+            Route::delete('/{noticium}', [NoticiaController::class, 'destroy'])->name('destroy');
+            
+            // Acciones rápidas
+            Route::patch('/{noticium}/toggle-destacado', [NoticiaController::class, 'toggleDestacado'])->name('toggle-destacado');
+            Route::patch('/{noticium}/toggle-superdestacado', [NoticiaController::class, 'toggleSuperDestacado'])->name('toggle-superdestacado');
+            Route::patch('/{noticium}/toggle-visible', [NoticiaController::class, 'toggleVisible'])->name('toggle-visible');
+            Route::patch('/{noticium}/toggle-activa', [NoticiaController::class, 'toggleActiva'])->name('toggle-activa');
+            
+            // Eliminar imagen
+            Route::delete('/imagen/{id}', [NoticiaController::class, 'destroyImage'])->name('destroy-image');
+        });
+    }); // ← Cierra el grupo Route::prefix('admin')
+}); // ← Cierra el grupo Route::middleware(['auth'])
