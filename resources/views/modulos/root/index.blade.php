@@ -224,7 +224,7 @@
                 <tr style="background-color: #1a3b2e;">
                     <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-left">Nombre</th>
                     <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-left">Modo Texto</th>
-                    <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-center">Colores</th>
+                    <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-center"></th>
                     <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-center">Visible</th>
                     <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-white text-right">Acciones</th>
                 </tr>
@@ -236,28 +236,21 @@
                         <td class="px-5 py-3.5 text-gray-500">
                             {{ $seccion->modoTexto->nombre ?? '—' }}
                         </td>
-                        <td class="px-5 py-3.5 text-center">
-                            <div class="inline-flex items-center gap-2">
-                                @if($seccion->color_fondo)
-                                    <span title="Fondo: {{ $seccion->color_fondo }}"
-                                          class="h-5 w-5 rounded border border-gray-200 inline-block"
-                                          style="background-color: {{ $seccion->color_fondo }}"></span>
-                                @endif
-                                @if($seccion->color_texto)
-                                    <span title="Texto: {{ $seccion->color_texto }}"
-                                          class="h-5 w-5 rounded border border-gray-200 inline-block"
-                                          style="background-color: {{ $seccion->color_texto }}"></span>
-                                @endif
-                                @if($seccion->color_borde)
-                                    <span title="Borde: {{ $seccion->color_borde }}"
-                                          class="h-5 w-5 rounded border border-gray-200 inline-block"
-                                          style="background-color: {{ $seccion->color_borde }}"></span>
-                                @endif
-                                @if(!$seccion->color_fondo && !$seccion->color_texto && !$seccion->color_borde)
-                                    <span class="text-gray-400">—</span>
-                                @endif
-                            </div>
-                        </td>
+                        <td class="px-5 py-3.5">
+    @if($seccion->color_fondo || $seccion->color_texto || $seccion->color_borde)
+        <span class="inline-block px-4 py-2 rounded text-sm font-bold"
+              title="Fondo: {{ $seccion->color_fondo }} | Texto: {{ $seccion->color_texto }} | Borde: {{ $seccion->color_borde }}"
+              style="
+                  background-color: {{ $seccion->color_fondo ?: '#ffffff' }};
+                  color: {{ $seccion->color_texto ?: '#000000' }};
+                  border: 2px solid {{ $seccion->color_borde ?: '#cccccc' }};
+              ">
+            Texto
+        </span>
+    @else
+        <span class="font-medium text-gray-800">{{ $seccion->nombre }}</span>
+    @endif
+</td>
                         <td class="px-5 py-3.5 text-center">
                             <x-badge-estado :activo="$seccion->visible_en_sitio"
                                             label-on="sí" label-off="no" />

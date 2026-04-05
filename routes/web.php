@@ -13,17 +13,50 @@ use App\Http\Controllers\admin\AlbumFotoController;
 use App\Http\Controllers\admin\AlbumFotoItemController;
 use App\Http\Controllers\admin\DescargableController;
 use App\Http\Controllers\admin\NoticiaController;
-use App\Http\Controllers\admin\MultimediaController; // ← Agregar esta línea
+use App\Http\Controllers\admin\MultimediaController;
+use App\Http\Controllers\admin\ContadorWebController;
+use App\Http\Controllers\PublicController;
 
+/*
+|--------------------------------------------------------------------------
+| Rutas Públicas (sin autenticación)
+|--------------------------------------------------------------------------
+*/
+Route::name('public.')->group(function () {
 
-Route::get('/', function () {
-    return redirect()->route('login');
+    Route::get('/', [PublicController::class, 'inicio'])->name('inicio');
+
+    Route::get('/institucional',  [PublicController::class, 'institucional'])->name('institucional');
+    Route::get('/servicios',      [PublicController::class, 'servicios'])->name('servicios');
+    Route::get('/novedades',      [PublicController::class, 'novedades'])->name('novedades');
+    Route::get('/contacto',       [PublicController::class, 'contacto'])->name('contacto');
+
+    // Noticia individual (slug)
+    Route::get('/novedades/{slug}', [PublicController::class, 'noticia'])->name('noticia');
+
+    // Formulario buzón empresas
+    Route::post('/contacto/enviar', [PublicController::class, 'contactoEnviar'])->name('contacto.enviar');
+
+    // Descarga de archivos
+    Route::get('/descargables/{id}/descargar', [PublicController::class, 'descargableDownload'])
+        ->name('descargable.download')
+        ->where('id', '[0-9]+');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Auth
+|--------------------------------------------------------------------------
+*/
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('login', [LoginController::class, 'login']);
 Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
+/*
+|--------------------------------------------------------------------------
+| Rutas protegidas (requieren autenticación)
+|--------------------------------------------------------------------------
+*/
 Route::middleware(['auth'])->group(function () {
 
     // ── Perfil ───────────────────────────────────────────────────────────────
@@ -53,15 +86,13 @@ Route::middleware(['auth'])->group(function () {
                 'usuarios' => 'admin'
             ]
         ]);
-        
-        // Ruta para exportar a Excel
+
         Route::get('usuarios/exportar/excel', [AdminController::class, 'exportExcel'])
             ->name('admin.export-excel');
-        
-        // Ruta para cambiar estado (activar/desactivar)
+
         Route::patch('usuarios/{admin}/toggle-estado', [AdminController::class, 'toggleActivo'])
             ->name('admin.toggle-activo');
-        
+
         // ── Módulo Agenda (Calendario) ────────────────────────────────────────
         Route::resource('agenda', AgendaController::class, [
             'names' => [
@@ -77,11 +108,10 @@ Route::middleware(['auth'])->group(function () {
             ],
             'except' => ['show']
         ]);
-        
-        // Ruta para cambiar estado del evento (activar/desactivar)
+
         Route::patch('agenda/{agendum}/toggle-estado', [AgendaController::class, 'toggleEstado'])
             ->name('agenda.toggle-estado');
-        
+
         // ── Módulo Álbumes de Fotos ──────────────────────────────────────────
         Route::resource('albumes', AlbumFotoController::class, [
             'names' => [
@@ -97,8 +127,7 @@ Route::middleware(['auth'])->group(function () {
                 'albumes' => 'album'
             ]
         ]);
-        
-        // Rutas para gestión de fotos dentro del álbum
+
         Route::prefix('albumes/{album}')->name('albumes.')->group(function () {
             Route::post('fotos', [AlbumFotoItemController::class, 'store'])->name('fotos.store');
             Route::match(['PUT', 'PATCH'], 'fotos/{foto}', [AlbumFotoItemController::class, 'update'])->name('fotos.update');
@@ -106,11 +135,10 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('fotos/{foto}/portada', [AlbumFotoItemController::class, 'setPortada'])->name('fotos.portada');
             Route::post('fotos/{foto}/recortar', [AlbumFotoItemController::class, 'recortar'])->name('fotos.recortar');
         });
-        
-        // Rutas adicionales para el álbum
+
         Route::patch('albumes/{album}/toggle-estado', [AlbumFotoController::class, 'toggleEstado'])->name('albumes.toggle-estado');
         Route::patch('albumes/{album}/toggle-visible', [AlbumFotoController::class, 'toggleVisible'])->name('albumes.toggle-visible');
-        
+
         // ── Módulo Trámites y Formularios (Descargables) ──────────────────────
         Route::resource('tramites', DescargableController::class, [
             'names' => [
@@ -121,41 +149,35 @@ Route::middleware(['auth'])->group(function () {
             ],
             'except' => ['create', 'edit', 'show']
         ]);
-        
-        // Ruta para descargar archivo
+
         Route::get('tramites/{descargable}/download', [DescargableController::class, 'download'])
             ->name('descargables.download');
-        
-        // Ruta para cambiar estado (activar/desactivar)
+
         Route::patch('tramites/{descargable}/toggle-estado', [DescargableController::class, 'toggleEstado'])
             ->name('descargables.toggle-estado');
-            
+
         // ── Módulo Root ──────────────────────────────────────────────────
         Route::prefix('root')->name('root.')->group(function () {
             Route::get('/', [RootController::class, 'index'])->name('index');
 
-            // Módulos
             Route::post  ('/modulos',          [RootController::class, 'moduloStore'])  ->name('modulos.store');
             Route::put   ('/modulos/{modulo}',  [RootController::class, 'moduloUpdate']) ->name('modulos.update');
             Route::delete('/modulos/{modulo}',  [RootController::class, 'moduloDestroy'])->name('modulos.destroy');
 
-            // Secciones de Banners
             Route::post  ('/secciones-banners',                 [RootController::class, 'seccionBannerStore'])  ->name('secciones-banners.store');
             Route::post  ('/secciones-banners/{seccionBanner}', [RootController::class, 'seccionBannerUpdate']) ->name('secciones-banners.update');
             Route::delete('/secciones-banners/{seccionBanner}', [RootController::class, 'seccionBannerDestroy'])->name('secciones-banners.destroy');
 
-            // Modos de Texto
             Route::post  ('/modos-texto',             [RootController::class, 'modoTextoStore'])  ->name('modos-texto.store');
             Route::put   ('/modos-texto/{modoTexto}', [RootController::class, 'modoTextoUpdate']) ->name('modos-texto.update');
             Route::delete('/modos-texto/{modoTexto}', [RootController::class, 'modoTextoDestroy'])->name('modos-texto.destroy');
 
-            // Secciones de Texto
             Route::post  ('/secciones',                [RootController::class, 'seccionStore'])  ->name('secciones.store');
             Route::put   ('/secciones/{seccionTexto}', [RootController::class, 'seccionUpdate']) ->name('secciones.update');
             Route::delete('/secciones/{seccionTexto}', [RootController::class, 'seccionDestroy'])->name('secciones.destroy');
         });
 
-        // ── Banners (Rutas amigables) ─────────────────────────────────────────
+        // ── Banners ─────────────────────────────────────────────────────────
         Route::resource('banners', BannerController::class, [
             'names' => [
                 'index'   => 'banners.index',
@@ -167,11 +189,11 @@ Route::middleware(['auth'])->group(function () {
                 'destroy' => 'banners.destroy',
             ]
         ]);
-        
+
         Route::patch('banners/{banner}/toggle-estado', [BannerController::class, 'toggleEstado'])
             ->name('banners.toggle-estado');
 
-        // ── Noticias ──────────────────────────────────────────────────────
+        // ── Noticias ─────────────────────────────────────────────────────────
         Route::prefix('noticias')->name('noticias.')->group(function () {
             Route::get('/', [NoticiaController::class, 'index'])->name('index');
             Route::get('/crear', [NoticiaController::class, 'create'])->name('create');
@@ -180,18 +202,16 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{noticium}/editar', [NoticiaController::class, 'edit'])->name('edit');
             Route::put('/{noticium}', [NoticiaController::class, 'update'])->name('update');
             Route::delete('/{noticium}', [NoticiaController::class, 'destroy'])->name('destroy');
-            
-            // Acciones rápidas
-            Route::patch('/{noticium}/toggle-destacado', [NoticiaController::class, 'toggleDestacado'])->name('toggle-destacado');
+
+            Route::patch('/{noticium}/toggle-destacado',      [NoticiaController::class, 'toggleDestacado'])->name('toggle-destacado');
             Route::patch('/{noticium}/toggle-superdestacado', [NoticiaController::class, 'toggleSuperDestacado'])->name('toggle-superdestacado');
-            Route::patch('/{noticium}/toggle-visible', [NoticiaController::class, 'toggleVisible'])->name('toggle-visible');
-            Route::patch('/{noticium}/toggle-activa', [NoticiaController::class, 'toggleActiva'])->name('toggle-activa');
-            
-            // Eliminar imagen
+            Route::patch('/{noticium}/toggle-visible',        [NoticiaController::class, 'toggleVisible'])->name('toggle-visible');
+            Route::patch('/{noticium}/toggle-activa',         [NoticiaController::class, 'toggleActiva'])->name('toggle-activa');
+
             Route::delete('/imagen/{id}', [NoticiaController::class, 'destroyImage'])->name('destroy-image');
         });
 
-        // ── Módulo Multimedia (Audio/Video) ──────────────────────────────────────
+        // ── Módulo Multimedia ────────────────────────────────────────────────
         Route::resource('multimedia', MultimediaController::class, [
             'names' => [
                 'index'   => 'multimedia.index',
@@ -206,8 +226,11 @@ Route::middleware(['auth'])->group(function () {
             ]
         ]);
 
-        // Ruta para cambiar estado (activar/desactivar)
         Route::patch('multimedia/{multimedium}/toggle-estado', [MultimediaController::class, 'toggleEstado'])
             ->name('multimedia.toggle-estado');
-    }); // ← Cierra el grupo Route::prefix('admin')
-}); // ← Cierra el grupo Route::middleware(['auth'])
+
+        // ── Módulo Contadores Web ────────────────────────────────────────────
+        Route::get('contadores', [ContadorWebController::class, 'index'])->name('contadores.index');
+
+    }); // ← Cierra prefix('admin')
+}); // ← Cierra middleware(['auth'])
