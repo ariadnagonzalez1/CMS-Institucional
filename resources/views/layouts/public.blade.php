@@ -247,11 +247,11 @@
     <div class="flex justify-center py-2" style="border-bottom:1px solid rgba(255,255,255,.08);">
         <a href="{{ route('public.inicio') }}" class="flex items-center justify-center">
             @php
-                $logoPath = public_path('storage/logo.png');
-                $logoSvg  = public_path('storage/logo.svg');
+                $logoPath = public_path('images/colegios.jpg');
+                $logoSvg  = public_path('images/colegios.jpg');
             @endphp
             @if(file_exists($logoPath) || file_exists($logoSvg))
-            <img src="{{ asset(file_exists($logoPath) ? 'storage/logo.png' : 'storage/logo.svg') }}"
+            <img src="{{ asset(file_exists($logoPath) ? 'images/colegios.jpg' : 'images/colegios.jpg') }}"
                  alt="Logo Colegio"
                  class="object-contain rounded-full"
                  style="width:46px;height:46px;background:#fff;padding:3px;">

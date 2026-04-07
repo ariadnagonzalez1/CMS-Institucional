@@ -18,28 +18,37 @@ use Carbon\Carbon;
 
 class PublicController extends Controller
 {
-    /**
-     * Datos compartidos entre todas las vistas públicas.
-     * Se resuelven una sola vez y se pasan a la vista.
-     */
     private function sharedData(): array
     {
-        $config = ConfiguracionSitio::where('activo', 1)->first() ?? new ConfiguracionSitio();
+        $config = ConfiguracionSitio::where('activo', 1)->first();
+        
+        // Si no hay configuración, crear un objeto con valores por defecto
+        if (!$config) {
+            $config = new ConfiguracionSitio();
+            $config->titulo_sitio = 'Colegio Público de Ingenieros de Formosa';
+            $config->descripcion_sitio = 'Regulamos y promovemos el ejercicio profesional de la ingeniería en la provincia de Formosa, garantizando calidad, ética y compromiso con la sociedad.';
+            $config->whatsapp = '3704 043114';
+            $config->telefono = '3704 043114';
+            $config->email_principal = 'ingenierosformosa@gmail.com';
+            $config->facebook_url = null;
+            $config->instagram_url = null;
+            $config->youtube_url = null;
+            $config->twitter_url = null;
+            $config->google_maps_url = null;
+            $config->activo = 1;
+        }
+        
         return compact('config');
     }
 
-    // ------------------------------------------------------------------ //
-    //  HOME
-    // ------------------------------------------------------------------ //
     public function inicio(): View
     {
         $shared = $this->sharedData();
 
-        // Banners de portada: tomamos la sección cuyo nombre contenga "portada" o la primera visible
-        $seccionPortada = \App\Models\SeccionBanner::where('visible_en_sitio', 1)
+        $seccionPortada = SeccionBanner::where('visible_en_sitio', 1)
             ->where(fn($q) => $q->where('nombre', 'like', '%portada%')->orWhere('nombre', 'like', '%principal%')->orWhere('nombre', 'like', '%home%'))
             ->first()
-            ?? \App\Models\SeccionBanner::where('visible_en_sitio', 1)->first();
+            ?? SeccionBanner::where('visible_en_sitio', 1)->first();
 
         $hoy = now()->toDateString();
         $banners = $seccionPortada
@@ -51,29 +60,34 @@ class PublicController extends Controller
                 ->get()
             : collect();
 
-        // Últimas 3 noticias activas
+        // Noticias hero: activas + visibles + destacado en portada
+        $noticiasHero = Noticia::with(['imagenes', 'seccion'])
+            ->where('activa', 1)
+            ->where('visible', 1)
+            ->where('es_destacado_portada', 1)
+            ->orderByDesc('fecha_publicacion')
+            ->limit(5)
+            ->get();
+
+        // Noticias novedades: activas + visibles + destacado en portada
         $noticias = Noticia::with(['imagenes', 'seccion'])
             ->where('activa', 1)
             ->where('visible', 1)
+            ->where('es_destacado_portada', 1)
             ->orderByDesc('fecha_publicacion')
             ->limit(3)
             ->get();
 
-        // Autoridades: en este sistema se guardan en la tabla de configuración.
-        // Adaptá si tenés un modelo/tabla propio para autoridades.
-        // Por ahora se pasan vacías para que las cards no aparezcan.
-        $consejoDirectivo    = collect();
+        $consejoDirectivo     = collect();
         $tribunalFiscalizador = collect();
-        $tribunalEtica       = collect();
+        $tribunalEtica        = collect();
 
-        // Descargables (primeros 6, visibles)
         $descargables = Descargable::where('visible', 1)
             ->where('estado', 1)
             ->orderByDesc('created_at')
             ->limit(6)
             ->get();
 
-        // Videos instructivos: multimedia con embed o URL externa (primeros 3)
         $videos = Multimedia::with(['seccion', 'tipo'])
             ->where('estado', 1)
             ->where(fn($q) => $q->whereNotNull('codigo_embed')
@@ -83,23 +97,17 @@ class PublicController extends Controller
             ->get();
 
         return view('public.inicio', array_merge($shared, compact(
-            'banners', 'noticias',
+            'banners', 'noticias', 'noticiasHero',
             'consejoDirectivo', 'tribunalFiscalizador', 'tribunalEtica',
             'descargables', 'videos'
         )));
     }
 
-    // ------------------------------------------------------------------ //
-    //  INSTITUCIONAL
-    // ------------------------------------------------------------------ //
     public function institucional(): View
     {
         return view('public.institucional', $this->sharedData());
     }
 
-    // ------------------------------------------------------------------ //
-    //  NOVEDADES
-    // ------------------------------------------------------------------ //
     public function novedades(Request $request): View
     {
         $shared = $this->sharedData();
@@ -119,9 +127,6 @@ class PublicController extends Controller
         return view('public.novedades', array_merge($shared, compact('noticias', 'secciones')));
     }
 
-    // ------------------------------------------------------------------ //
-    //  NOTICIA INDIVIDUAL
-    // ------------------------------------------------------------------ //
     public function noticia(string $slug): View
     {
         $shared = $this->sharedData();
@@ -132,15 +137,11 @@ class PublicController extends Controller
             ->where('visible', 1)
             ->firstOrFail();
 
-        // Incrementar visitas
         $noticia->increment('visitas');
 
         return view('public.noticia', array_merge($shared, compact('noticia')));
     }
 
-    // ------------------------------------------------------------------ //
-    //  SERVICIOS
-    // ------------------------------------------------------------------ //
     public function servicios(): View
     {
         $shared = $this->sharedData();
@@ -162,27 +163,21 @@ class PublicController extends Controller
         return view('public.servicios', array_merge($shared, compact('descargables', 'videos')));
     }
 
-    // ------------------------------------------------------------------ //
-    //  CONTACTO
-    // ------------------------------------------------------------------ //
     public function contacto(): View
     {
         return view('public.contacto', $this->sharedData());
     }
 
-    // ------------------------------------------------------------------ //
-    //  ENVÍO DE FORMULARIO
-    // ------------------------------------------------------------------ //
     public function contactoEnviar(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'nombre'  => 'required|string|max:150',
-            'email'   => 'required|email|max:150',
-            'telefono'=> 'nullable|string|max:30',
-            'empresa' => 'nullable|string|max:150',
-            'asunto'  => 'nullable|string|max:255',
+            'nombre'   => 'required|string|max:150',
+            'email'    => 'required|email|max:150',
+            'telefono' => 'nullable|string|max:30',
+            'empresa'  => 'nullable|string|max:150',
+            'asunto'   => 'nullable|string|max:255',
             'ubicacion'=> 'nullable|string|max:150',
-            'mensaje' => 'required|string|max:3000',
+            'mensaje'  => 'required|string|max:3000',
         ]);
 
         $solicitud = SolicitudEmpresa::create([
@@ -196,7 +191,6 @@ class PublicController extends Controller
             'estado'   => 'pendiente',
         ]);
 
-        // Si venían ingenierías seleccionadas
         if ($request->filled('ingenierias')) {
             foreach ((array) $request->ingenierias as $ingId) {
                 SolicitudEmpresaIngenieria::create([
@@ -209,9 +203,6 @@ class PublicController extends Controller
         return back()->with('success', '¡Tu mensaje fue enviado correctamente! Nos comunicaremos a la brevedad.');
     }
 
-    // ------------------------------------------------------------------ //
-    //  DESCARGA DE ARCHIVO
-    // ------------------------------------------------------------------ //
     public function descargableDownload(int $id)
     {
         $descargable = Descargable::where('id', $id)

@@ -5,7 +5,7 @@ namespace App\Http\Requests\Noticias;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreNoticiaRequest extends FormRequest
+class StoreNoticiasRequest extends FormRequest
 {
     public function authorize()
     {

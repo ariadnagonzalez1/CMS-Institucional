@@ -1,3 +1,4 @@
+{{-- resources/views/modulos/noticias/index.blade.php --}}
 @extends('layouts.admin')
 
 @section('title', 'Noticias y Títulos')
@@ -95,7 +96,6 @@
                         <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Sección</th>
                         <th class="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">☑</th>
                         <th class="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">D</th>
-                        <th class="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">SD</th>
                         <th class="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">U</th>
                         <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Acciones</th>
                     </tr>
@@ -126,7 +126,7 @@
                             {{-- Visible (☑) --}}
                             <td class="px-5 py-4 text-center">
                                 <button onclick="toggleEstado({{ $noticia->id }}, 'visible', this)"
-                                        class="text-xl {{ $noticia->visible ? 'text-emerald-600' : 'text-gray-300' }} hover:opacity-75 transition">
+                                        class="toggle-visible-{{ $noticia->id }} text-xl {{ $noticia->visible ? 'text-emerald-600' : 'text-gray-300' }} hover:opacity-75 transition">
                                     ☑
                                 </button>
                             </td>
@@ -134,23 +134,15 @@
                             {{-- Destacado (D) --}}
                             <td class="px-5 py-4 text-center">
                                 <button onclick="toggleEstado({{ $noticia->id }}, 'destacado', this)"
-                                        class="text-xl {{ $noticia->es_destacado_portada ? 'text-emerald-600' : 'text-gray-300' }} hover:opacity-75 transition">
+                                        class="toggle-destacado-{{ $noticia->id }} text-xl {{ $noticia->es_destacado_portada ? 'text-emerald-600' : 'text-gray-300' }} hover:opacity-75 transition">
                                     D
-                                </button>
-                            </td>
-                            
-                            {{-- Superdestacado (SD) --}}
-                            <td class="px-5 py-4 text-center">
-                                <button onclick="toggleEstado({{ $noticia->id }}, 'superdestacado', this)"
-                                        class="text-xl {{ $noticia->es_superdestacado_portada ? 'text-emerald-600' : 'text-gray-300' }} hover:opacity-75 transition">
-                                    SD
                                 </button>
                             </td>
                             
                             {{-- Activa (U) --}}
                             <td class="px-5 py-4 text-center">
                                 <button onclick="toggleEstado({{ $noticia->id }}, 'activa', this)"
-                                        class="text-xl {{ $noticia->activa ? 'text-emerald-600' : 'text-gray-300' }} hover:opacity-75 transition">
+                                        class="toggle-activa-{{ $noticia->id }} text-xl {{ $noticia->activa ? 'text-emerald-600' : 'text-gray-300' }} hover:opacity-75 transition">
                                     U
                                 </button>
                             </td>
@@ -177,7 +169,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-5 py-16 text-center">
+                            <td colspan="7" class="px-5 py-16 text-center">
                                 <div class="flex flex-col items-center gap-3 text-gray-400">
                                     <svg class="h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
@@ -272,7 +264,6 @@
         const urls = {
             visible: `/admin/noticias/${id}/toggle-visible`,
             destacado: `/admin/noticias/${id}/toggle-destacado`,
-            superdestacado: `/admin/noticias/${id}/toggle-superdestacado`,
             activa: `/admin/noticias/${id}/toggle-activa`
         };
         
