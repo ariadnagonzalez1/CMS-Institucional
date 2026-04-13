@@ -303,25 +303,69 @@
             <p class="section-label mb-2">Servicios</p>
             <h2 class="font-display text-4xl text-gray-900">Descargables y Documentación</h2>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @foreach($descargables as $i => $desc)
-            <a href="{{ route('public.descargable.download', $desc->id) }}"
-               class="descargable-item flex items-center gap-4 p-5 border border-gray-100 rounded-sm bg-white fade-up"
-               style="transition-delay: {{ $i * 60 }}ms">
-                <div class="w-10 h-10 rounded flex items-center justify-center flex-shrink-0" style="background:#fff0f0">
-                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
+            <div class="fade-up group" style="transition-delay: {{ $i * 60 }}ms">
+                {{-- Tarjeta con borde y sombra --}}
+                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-[#1a3b2e] transition-all duration-300 h-full">
+                    
+                    {{-- SECCIÓN ARRIBA (header de la tarjeta) --}}
+                    <div class="px-4 py-2 border-b border-gray-100" style="background-color: #f5f5f0;">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider" style="color: #1a3b2e;">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                            </svg>
+                            {{ $desc->seccion->nombre ?? 'Documentos' }}
+                        </span>
+                    </div>
+                    
+                    {{-- CUERPO DE LA TARJETA (documento) --}}
+                    <a href="{{ route('public.descargable.download', $desc->id) }}" class="block p-4 group-hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            {{-- Icono --}}
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-gray-100 group-hover:bg-[#1a3b2e] transition-colors duration-300">
+                                @php
+                                    $icono = match($desc->tipo_archivo) {
+                                        'pdf' => '📄',
+                                        'doc', 'docx' => '📝',
+                                        'xls', 'xlsx' => '📊',
+                                        default => '📁'
+                                    };
+                                @endphp
+                                <span class="text-xl group-hover:text-white transition-colors duration-300">{{ $icono }}</span>
+                            </div>
+                            
+                            {{-- Título del documento --}}
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-sm font-semibold text-gray-800 group-hover:text-[#1a3b2e] transition-colors leading-tight">
+                                    {{ $desc->tema ?: ($desc->nombre_original_archivo ?: 'Documento sin título') }}
+                                </h3>
+                            </div>
+                            
+                            {{-- Flecha de descarga --}}
+                            <svg class="w-4 h-4 text-gray-300 group-hover:text-[#1a3b2e] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-3-3m3 3l3-3M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+                            </svg>
+                        </div>
+                    </a>
                 </div>
-                <span class="text-sm text-gray-800 font-medium leading-snug">{{ $desc->tema }}</span>
-            </a>
+            </div>
             @endforeach
+        </div>
+        
+        {{-- Botón para ver más --}}
+        <div class="text-center mt-10">
+            <a href="{{ route('public.servicios') }}" 
+               class="inline-flex items-center gap-2 px-6 py-3 border border-[#1a3b2e] text-[#1a3b2e] font-semibold rounded-lg hover:bg-[#1a3b2e] hover:text-white transition-all duration-300">
+                Ver todos los documentos
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
         </div>
     </div>
 </section>
 @endif
-
 {{-- ===================== MULTIMEDIA / VIDEOS ===================== --}}
 @if($videos->count())
 <section class="py-20" style="background:var(--verde-suave)">
