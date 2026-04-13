@@ -83,7 +83,7 @@ class DashboardController extends Controller
             (object)[
                 'nombre' => 'Trámites y Formularios',
                 'icono' => 'fas fa-file-alt',
-                'path_home' => '/admin/tramites',
+                'path_home' => '/admin/tramites-formularios',
                 'descripcion' => 'Documentos descargables'
             ],
         ]);

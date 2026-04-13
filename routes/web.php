@@ -139,23 +139,6 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('albumes/{album}/toggle-estado', [AlbumFotoController::class, 'toggleEstado'])->name('albumes.toggle-estado');
         Route::patch('albumes/{album}/toggle-visible', [AlbumFotoController::class, 'toggleVisible'])->name('albumes.toggle-visible');
 
-        // ── Módulo Trámites y Formularios (Descargables) ──────────────────────
-        Route::resource('tramites', DescargableController::class, [
-            'names' => [
-                'index'   => 'descargables.index',
-                'store'   => 'descargables.store',
-                'update'  => 'descargables.update',
-                'destroy' => 'descargables.destroy',
-            ],
-            'except' => ['create', 'edit', 'show']
-        ]);
-
-        Route::get('tramites/{descargable}/download', [DescargableController::class, 'download'])
-            ->name('descargables.download');
-
-        Route::patch('tramites/{descargable}/toggle-estado', [DescargableController::class, 'toggleEstado'])
-            ->name('descargables.toggle-estado');
-
         // ── Módulo Root ──────────────────────────────────────────────────
         Route::prefix('root')->name('root.')->group(function () {
             Route::get('/', [RootController::class, 'index'])->name('index');
@@ -231,6 +214,16 @@ Route::middleware(['auth'])->group(function () {
 
         // ── Módulo Contadores Web ────────────────────────────────────────────
         Route::get('contadores', [ContadorWebController::class, 'index'])->name('contadores.index');
+
+        // ── Módulo Trámites y Formularios (Descargables) ─────────────────────
+        Route::prefix('tramites-formularios')->name('descargables.')->group(function () {
+            Route::get('/',                              [DescargableController::class, 'index'])        ->name('index');
+            Route::post('/',                             [DescargableController::class, 'store'])        ->name('store');
+            Route::put('/{descargable}',                 [DescargableController::class, 'update'])       ->name('update');
+            Route::delete('/{descargable}',              [DescargableController::class, 'destroy'])      ->name('destroy');
+            Route::patch('/{descargable}/toggle-activo', [DescargableController::class, 'toggleActivo'])->name('toggleActivo');
+            Route::get('/{descargable}/descargar',       [DescargableController::class, 'descargar'])   ->name('descargar');
+        });
 
     }); // ← Cierra prefix('admin')
 }); // ← Cierra middleware(['auth'])

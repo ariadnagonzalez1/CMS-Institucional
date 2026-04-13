@@ -1,258 +1,181 @@
 <?php
-// app/Http/Controllers/admin/DescargableController.php
 
 namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\DescargableRequest;
 use App\Models\Descargable;
 use App\Models\SeccionDescargable;
 use App\Services\CrudService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class DescargableController extends Controller
 {
-    protected CrudService $crud;
+    public function __construct(private CrudService $crud) {}
 
-    public function __construct(CrudService $crud)
-    {
-        $this->crud = $crud;
-    }
+    // ── Variables compartidas del layout ─────────────────────────────────────
 
-    /**
-     * Método privado para obtener los datos del usuario y módulos
-     */
-    private function getLayoutData()
+    private function layoutVars(): array
     {
-        $user = Auth::user();
-        $nombreUsuario = $user ? ($user->name . ' ' . ($user->apellido ?? '')) : 'Administrador';
+        $user          = Auth::user();
+        $nombreUsuario = $user?->name ?? 'Administrador';
 
         $modulosPrincipales = collect([
-            (object)[
-                'nombre' => 'Root',
-                'icono' => 'fas fa-database',
-                'path_home' => '/admin/root',
-                'descripcion' => 'Configuración general del sistema'
-            ],
-            (object)[
-                'nombre' => 'Admin y Usuarios',
-                'icono' => 'fas fa-users-cog',
-                'path_home' => '/admin/usuarios',
-                'descripcion' => 'Gestión de usuarios y permisos'
-            ],
-            (object)[
-                'nombre' => 'Novedades y Noticias',
-                'icono' => 'fas fa-newspaper',
-                'path_home' => '/admin/noticias',
-                'descripcion' => 'Publicar y administrar noticias'
-            ],
-            (object)[
-                'nombre' => 'Publicidad y Banners',
-                'icono' => 'fas fa-ad',
-                'path_home' => '/admin/banners',
-                'descripcion' => 'Gestionar banners publicitarios'
-            ],
-            (object)[
-                'nombre' => 'Audio/Video',
-                'icono' => 'fas fa-video',
-                'path_home' => '/admin/multimedia',
-                'descripcion' => 'Contenido multimedia'
-            ],
+            (object)['nombre' => 'Root',                 'icono' => 'fas fa-database',    'path_home' => '/admin/root',       'descripcion' => 'Configuración general del sistema'],
+            (object)['nombre' => 'Admin y Usuarios',     'icono' => 'fas fa-users-cog',   'path_home' => '/admin/usuarios',   'descripcion' => 'Gestión de usuarios y permisos'],
+            (object)['nombre' => 'Novedades y Noticias', 'icono' => 'fas fa-newspaper',   'path_home' => '/admin/noticias',   'descripcion' => 'Publicar y administrar noticias'],
+            (object)['nombre' => 'Publicidad y Banners', 'icono' => 'fas fa-ad',          'path_home' => '/admin/banners',    'descripcion' => 'Gestionar banners publicitarios'],
+            (object)['nombre' => 'Audio/Video',          'icono' => 'fas fa-video',       'path_home' => '/admin/multimedia', 'descripcion' => 'Contenido multimedia'],
         ]);
 
         $modulosSecundarios = collect([
-            (object)[
-                'nombre' => 'Álbum de Fotos',
-                'icono' => 'fas fa-images',
-                'path_home' => '/admin/albumes',
-                'descripcion' => 'Crear y gestionar álbumes'
-            ],
-            (object)[
-                'nombre' => 'Calendario Agenda',
-                'icono' => 'fas fa-calendar-alt',
-                'path_home' => '/admin/agenda',
-                'descripcion' => 'Eventos y programación'
-            ],
-            (object)[
-                'nombre' => 'Mi Perfil',
-                'icono' => 'fas fa-user-circle',
-                'path_home' => '/profile',
-                'descripcion' => 'Datos personales y cuenta'
-            ],
-            (object)[
-                'nombre' => 'Contadores Web',
-                'icono' => 'fas fa-chart-line',
-                'path_home' => '/admin/contadores',
-                'descripcion' => 'Estadísticas y métricas'
-            ],
-            (object)[
-                'nombre' => 'Trámites y Formularios',
-                'icono' => 'fas fa-file-alt',
-                'path_home' => '/admin/descargables',
-                'descripcion' => 'Documentos descargables'
-            ],
+            (object)['nombre' => 'Álbum de Fotos',        'icono' => 'fas fa-images',       'path_home' => '/admin/albumes',              'descripcion' => 'Crear y gestionar álbumes'],
+            (object)['nombre' => 'Calendario Agenda',     'icono' => 'fas fa-calendar-alt', 'path_home' => '/admin/agenda',               'descripcion' => 'Eventos y programación'],
+            (object)['nombre' => 'Mi Perfil',             'icono' => 'fas fa-user-circle',  'path_home' => '/profile',                    'descripcion' => 'Datos personales y cuenta'],
+            (object)['nombre' => 'Contadores Web',        'icono' => 'fas fa-chart-line',   'path_home' => '/admin/contadores',           'descripcion' => 'Estadísticas y métricas'],
+            (object)['nombre' => 'Trámites y Formularios','icono' => 'fas fa-file-alt',     'path_home' => '/admin/tramites-formularios', 'descripcion' => 'Documentos descargables'],
         ]);
 
         return compact('nombreUsuario', 'modulosPrincipales', 'modulosSecundarios');
     }
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
+    // ── Index ────────────────────────────────────────────────────────────────
+
+    public function index(Request $request): View
     {
-        $query = Descargable::with(['seccion', 'user']);
+        $query = Descargable::with('seccion')
+            ->latest('fecha_publicacion');
 
-        // Búsqueda por tema
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where('tema', 'LIKE', "%{$search}%")
-                  ->orWhere('comentario', 'LIKE', "%{$search}%");
+        if ($seccionId = $request->input('seccion_id')) {
+            $query->where('seccion_descargable_id', $seccionId);
         }
 
-        // Filtro por sección
-        if ($request->filled('seccion_id')) {
-            $query->where('seccion_descargable_id', $request->seccion_id);
-        }
-
-        // Filtro por estado
         if ($request->filled('estado')) {
-            $query->where('estado', $request->estado);
+            $query->where('estado', $request->input('estado') === 'activo');
         }
 
-        $descargables = $query->orderBy('created_at', 'desc')->paginate(10);
-        
-        // Para los filtros
-        $secciones = SeccionDescargable::where('visible_en_sitio', true)->orderBy('orden')->orderBy('nombre')->get();
+        if ($tema = $request->input('tema')) {
+            $query->where('tema', 'like', "%{$tema}%");
+        }
 
-        $layoutData = $this->getLayoutData();
-        
-        return view('admin.descargables.index', array_merge($layoutData, compact('descargables', 'secciones')));
+        $descargables = $query->paginate(20)->withQueryString();
+        $secciones    = SeccionDescargable::orderBy('orden')->get();
+
+        return view('admin.descargables.index', array_merge(
+            compact('descargables', 'secciones'),
+            $this->layoutVars()
+        ));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(DescargableRequest $request)
+    // ── Store ────────────────────────────────────────────────────────────────
+
+    public function store(Request $request): RedirectResponse
     {
-        $data = $request->validated();
-        
+        $data = $request->validate([
+            'seccion_descargable_id' => 'required|exists:secciones_descargables,id',
+            'fecha_publicacion'      => 'required|date',
+            'tema'                   => 'required|string|max:255',
+            'comentario'             => 'nullable|string|max:1000',
+            'archivo'                => 'required|file|mimes:pdf,doc,docx,xls,xlsx,zip|max:10240',
+        ]);
+
         return $this->crud->store(
-            model: new Descargable(),
-            data: $data,
-            redirectTo: route('admin.descargables.index'),
-            label: 'documento',
-            beforeSave: function(Descargable $descargable) use ($request, $data) {
-                $descargable->user_id = Auth::id();
-                $descargable->estado = $data['estado'] ?? true;
-                $descargable->total_descargas = 0;
-                
-                // Subir archivo
-                if ($request->hasFile('archivo')) {
-                    $file = $request->file('archivo');
-                    $extension = $file->getClientOriginalExtension();
-                    $filename = Str::uuid() . '.' . $extension;
-                    $path = $file->storeAs('descargables', $filename, 'public');
-                    
-                    $descargable->archivo = $path;
-                    $descargable->nombre_original_archivo = $file->getClientOriginalName();
-                    $descargable->tipo_archivo = $extension;
-                    $descargable->tamano_archivo_kb = round($file->getSize() / 1024, 2);
-                }
-            }
+            model      : new Descargable,
+            data       : $data,
+            redirectTo : route('admin.descargables.index'),
+            label      : 'documento',
+            beforeSave : function (Descargable $m) use ($request) {
+                $file = $request->file('archivo');
+                $path = $file->store('descargables', 'public');
+
+                $m->archivo               = $path;
+                $m->nombre_original_archivo = $file->getClientOriginalName();
+                $m->tipo_archivo          = $file->getClientOriginalExtension();
+                $m->tamano_archivo_kb     = (int) round($file->getSize() / 1024);
+                $m->estado                = true;
+                $m->visible               = true;
+                $m->total_descargas       = 0;
+                $m->user_id               = Auth::id();
+            },
         );
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(DescargableRequest $request, Descargable $descargable)
+    // ── Update ───────────────────────────────────────────────────────────────
+
+    public function update(Request $request, Descargable $descargable): RedirectResponse
     {
-        $data = $request->validated();
-        
+        $data = $request->validate([
+            'seccion_descargable_id' => 'required|exists:secciones_descargables,id',
+            'fecha_publicacion'      => 'required|date',
+            'tema'                   => 'required|string|max:255',
+            'comentario'             => 'nullable|string|max:1000',
+            'archivo'                => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,zip|max:10240',
+        ]);
+
         return $this->crud->update(
-            model: $descargable,
-            data: $data,
-            redirectTo: route('admin.descargables.index'),
-            label: 'documento',
-            beforeSave: function(Descargable $descargable) use ($request, $data) {
-                $descargable->estado = $data['estado'] ?? true;
-                
-                // Subir nuevo archivo si se proporciona
+            model      : $descargable,
+            data       : $data,
+            redirectTo : route('admin.descargables.index'),
+            label      : 'documento',
+            beforeSave : function (Descargable $m) use ($request) {
                 if ($request->hasFile('archivo')) {
-                    // Eliminar archivo anterior
-                    if ($descargable->archivo && Storage::disk('public')->exists($descargable->archivo)) {
-                        Storage::disk('public')->delete($descargable->archivo);
+                    if ($m->archivo && Storage::disk('public')->exists($m->archivo)) {
+                        Storage::disk('public')->delete($m->archivo);
                     }
-                    
                     $file = $request->file('archivo');
-                    $extension = $file->getClientOriginalExtension();
-                    $filename = Str::uuid() . '.' . $extension;
-                    $path = $file->storeAs('descargables', $filename, 'public');
-                    
-                    $descargable->archivo = $path;
-                    $descargable->nombre_original_archivo = $file->getClientOriginalName();
-                    $descargable->tipo_archivo = $extension;
-                    $descargable->tamano_archivo_kb = round($file->getSize() / 1024, 2);
+                    $path = $file->store('descargables', 'public');
+
+                    $m->archivo               = $path;
+                    $m->nombre_original_archivo = $file->getClientOriginalName();
+                    $m->tipo_archivo          = $file->getClientOriginalExtension();
+                    $m->tamano_archivo_kb     = (int) round($file->getSize() / 1024);
                 }
-            }
+            },
         );
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Descargable $descargable)
+    // ── Toggle estado ─────────────────────────────────────────────────────────
+
+    public function toggleActivo(Descargable $descargable): RedirectResponse
     {
-        // Eliminar archivo físico
-        if ($descargable->archivo && Storage::disk('public')->exists($descargable->archivo)) {
-            Storage::disk('public')->delete($descargable->archivo);
-        }
-        
+        return $this->crud->update(
+            model      : $descargable,
+            data       : ['estado' => ! $descargable->estado],
+            redirectTo : route('admin.descargables.index'),
+            label      : 'documento',
+        );
+    }
+
+    // ── Destroy ──────────────────────────────────────────────────────────────
+
+    public function destroy(Descargable $descargable): RedirectResponse
+    {
         return $this->crud->destroy(
-            model: $descargable,
-            redirectTo: route('admin.descargables.index'),
-            label: 'documento'
+            model        : $descargable,
+            redirectTo   : route('admin.descargables.index'),
+            label        : 'documento',
+            beforeDelete : function (Descargable $m) {
+                if ($m->archivo && Storage::disk('public')->exists($m->archivo)) {
+                    Storage::disk('public')->delete($m->archivo);
+                }
+            },
         );
     }
 
-    /**
-     * Download the file and increment download count
-     */
-    public function download(Descargable $descargable)
-    {
-        try {
-            // Incrementar contador de descargas
-            $descargable->increment('total_descargas');
-            
-            // Verificar si el archivo existe
-            if ($descargable->archivo && Storage::disk('public')->exists($descargable->archivo)) {
-                return Storage::disk('public')->download($descargable->archivo, $descargable->nombre_original_archivo);
-            }
-            
-            return redirect()->back()->with('error', 'El archivo no existe.');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error al descargar el archivo.');
-        }
-    }
+    // ── Descargar (incrementa contador) ──────────────────────────────────────
 
-    /**
-     * Toggle document status
-     */
-    public function toggleEstado(Descargable $descargable)
+    public function descargar(Descargable $descargable)
     {
-        try {
-            $descargable->estado = !$descargable->estado;
-            $descargable->save();
+        abort_unless($descargable->estado, 404);
 
-            $estado = $descargable->estado ? 'activado' : 'desactivado';
-            return redirect()->back()->with('success', "Documento {$estado} correctamente.");
-        } catch (\Throwable $e) {
-            return redirect()->back()->with('error', 'No se pudo cambiar el estado.');
-        }
+        $descargable->increment('total_descargas');
+
+        return Storage::disk('public')->download(
+            $descargable->archivo,
+            $descargable->nombre_original_archivo,
+        );
     }
 }
